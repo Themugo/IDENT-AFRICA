@@ -781,3 +781,120 @@ ON CONFLICT DO NOTHING;
 -- =============================================================================
 -- END OF PAGE SECTIONS
 -- =============================================================================
+
+-- =============================================================================
+-- TRAVELER JOURNEY TABLE
+-- Unified customer journey management
+-- =============================================================================
+
+CREATE TYPE journey_stage AS ENUM (
+    'DISCOVERY',
+    'PLANNING',
+    'BOOKING',
+    'PAYMENT',
+    'PREPARATION',
+    'TRAVEL',
+    'POST_TRAVEL'
+);
+
+CREATE TYPE journey_status AS ENUM (
+    'active',
+    'completed',
+    'abandoned',
+    'cancelled'
+);
+
+CREATE TYPE entity_type AS ENUM (
+    'destination',
+    'package',
+    'experience',
+    'ai_plan',
+    'booking',
+    'payment',
+    'review'
+);
+
+CREATE TABLE IF NOT EXISTS traveler_journey (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    user_id VARCHAR(64) NOT NULL,
+    stage journey_stage NOT NULL,
+    entity_type entity_type NOT NULL,
+    entity_id VARCHAR(128) NOT NULL,
+    status journey_status DEFAULT 'active',
+    metadata JSONB DEFAULT '{}'::jsonb,
+    stage_started_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    stage_completed_at TIMESTAMP WITH TIME ZONE,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    
+    -- Foreign key to users table
+    CONSTRAINT fk_user FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+    
+    -- Indexes for common queries
+    CONSTRAINT unique_user_stage_entity UNIQUE (user_id, stage, entity_id)
+);
+
+-- Indexes for performance
+CREATE INDEX idx_journey_user_id ON traveler_journey(user_id);
+CREATE INDEX idx_journey_stage ON traveler_journey(stage);
+CREATE INDEX idx_journey_status ON traveler_journey(status);
+CREATE INDEX idx_journey_entity ON traveler_journey(entity_type, entity_id);
+CREATE INDEX idx_journey_created ON traveler_journey(created_at DESC);
+
+-- Function to update journey updated_at
+CREATE OR REPLACE FUNCTION update_journey_timestamp()
+RETURNS TRIGGER AS $$
+BEGIN
+    NEW.updated_at = CURRENT_TIMESTAMP;
+    RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+CREATE TRIGGER trg_journey_updated
+    BEFORE UPDATE ON traveler_journey
+    FOR EACH ROW
+    EXECUTE FUNCTION update_journey_timestamp();
+
+-- Function to mark stage as completed
+CREATE OR REPLACE FUNCTION complete_journey_stage()
+RETURNS TRIGGER AS $$
+BEGIN
+    IF NEW.status = 'completed' AND OLD.status != 'completed' THEN
+        NEW.stage_completed_at = CURRENT_TIMESTAMP;
+    END IF;
+    RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+CREATE TRIGGER trg_complete_stage
+    BEFORE UPDATE ON traveler_journey
+    FOR EACH ROW
+    EXECUTE FUNCTION complete_journey_stage();
+
+-- =============================================================================
+-- JOURNEY ANALYTICS TABLE
+-- Track aggregated journey metrics
+-- =============================================================================
+
+CREATE TABLE IF NOT EXISTS journey_analytics (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    user_id VARCHAR(64) NOT NULL,
+    destination_id VARCHAR(64),
+    journey_started_at TIMESTAMP WITH TIME ZONE,
+    booking_completed_at TIMESTAMP WITH TIME ZONE,
+    travel_completed_at TIMESTAMP WITH TIME ZONE,
+    days_to_booking INT,
+    days_to_travel INT,
+    total_value DECIMAL(12,2),
+    conversion_source VARCHAR(128),
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    
+    CONSTRAINT fk_analytics_user FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+);
+
+CREATE INDEX idx_analytics_destination ON journey_analytics(destination_id);
+CREATE INDEX idx_analytics_conversion ON journey_analytics(conversion_source);
+
+-- =============================================================================
+-- END OF TRAVELER JOURNEY
+-- =============================================================================
