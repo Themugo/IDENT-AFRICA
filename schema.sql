@@ -225,7 +225,37 @@ CREATE INDEX IF NOT EXISTS idx_saved_destinations_user ON saved_destinations(use
 CREATE INDEX IF NOT EXISTS idx_saved_destinations_dest ON saved_destinations(destination_id);
 
 -- =============================================================================
--- 9. BOOKINGS TABLE (Future Production Use)
+-- 9. USERS TABLE (Authentication & Profile)
+-- =============================================================================
+CREATE TABLE IF NOT EXISTS users (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    email VARCHAR(255) NOT NULL UNIQUE,
+    password_hash VARCHAR(255) NOT NULL,
+    name VARCHAR(255) NOT NULL,
+    role VARCHAR(32) NOT NULL DEFAULT 'traveler' CHECK (role IN ('traveler', 'admin', 'ranger_partner', 'supplier')),
+    phone VARCHAR(64),
+    avatar_url TEXT,
+    preferred_currency VARCHAR(3) DEFAULT 'USD',
+    dietary_preferences VARCHAR(255),
+    passport_country VARCHAR(64),
+    email_verified BOOLEAN DEFAULT FALSE,
+    is_active BOOLEAN DEFAULT TRUE,
+    last_login_at TIMESTAMP WITH TIME ZONE,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP NOT NULL,
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP NOT NULL,
+    CONSTRAINT valid_email CHECK (email ~* '^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}$')
+);
+
+CREATE TRIGGER update_users_updated_at
+    BEFORE UPDATE ON users
+    FOR EACH ROW
+    EXECUTE FUNCTION update_updated_at_column();
+
+CREATE INDEX IF NOT EXISTS idx_users_email ON users(email);
+CREATE INDEX IF NOT EXISTS idx_users_role ON users(role);
+
+-- =============================================================================
+-- 10. BOOKINGS TABLE
 -- =============================================================================
 CREATE TABLE IF NOT EXISTS bookings (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),

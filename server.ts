@@ -505,6 +505,52 @@ Ensure all prices sum up logically in costBreakdown, lodging aligns with duratio
   // AUTHENTICATION ROUTES
   // =============================================================================
   
+  // POST /api/auth/register - User registration
+  app.post('/api/auth/register', async (req: Request, res: Response) => {
+    try {
+      const { name, email, password, phone, role = 'traveler' } = req.body;
+      
+      if (!name || typeof name !== 'string' || name.trim().length < 2) {
+        return res.status(400).json(createResponse(false, undefined, 'Invalid name', 'Name must be at least 2 characters'));
+      }
+      if (!email || !isValidEmail(email)) {
+        return res.status(400).json(createResponse(false, undefined, 'Invalid email', 'Please provide a valid email address'));
+      }
+      if (!password || password.length < 8) {
+        return res.status(400).json(createResponse(false, undefined, 'Invalid password', 'Password must be at least 8 characters'));
+      }
+      if (phone && !isValidPhone(phone)) {
+        return res.status(400).json(createResponse(false, undefined, 'Invalid phone', 'Please provide a valid phone number'));
+      }
+      if (!['traveler', 'ranger_partner'].includes(role)) {
+        return res.status(400).json(createResponse(false, undefined, 'Invalid role', 'Role must be traveler or ranger_partner'));
+      }
+      
+      const userId = `usr-${Date.now()}`;
+      const newUser = {
+        id: userId,
+        email: sanitizeString(email).toLowerCase(),
+        name: sanitizeString(name),
+        role: role as 'traveler' | 'ranger_partner',
+        phone: phone ? sanitizeString(phone) : undefined,
+        createdAt: new Date().toISOString(),
+      };
+      
+      const { createToken } = await import('./src/auth/index.ts');
+      const token = createToken(newUser);
+      
+      res.status(201).json(createResponse(true, {
+        token,
+        user: { id: newUser.id, email: newUser.email, name: newUser.name, role: newUser.role },
+        expiresIn: '24h',
+        message: 'Registration successful',
+      }));
+    } catch (error) {
+      console.error('Registration error:', error);
+      res.status(500).json(createResponse(false, undefined, 'Registration failed', 'An unexpected error occurred'));
+    }
+  });
+
   // POST /api/auth/login - User login
   app.post('/api/auth/login', async (req: Request, res: Response) => {
     try {
@@ -546,14 +592,14 @@ Ensure all prices sum up logically in costBreakdown, lodging aligns with duratio
   });
 
   // GET /api/auth/me - Get current user
-  app.get('/api/auth/me', (req: Request, res: Response) => {
+  app.get('/api/auth/me', async (req: Request, res: Response) => {
     const token = req.headers.authorization?.replace('Bearer ', '');
     
     if (!token) {
       return res.status(401).json(createResponse(false, undefined, 'Not authenticated', 'Please log in'));
     }
 
-    const { verifyToken, DEMO_USERS } = require('./src/auth/index.ts');
+    const { verifyToken, DEMO_USERS } = await import('./src/auth/index.ts');
     const payload = verifyToken(token);
     
     if (!payload) {
