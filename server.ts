@@ -21,6 +21,7 @@ import adminRouter from './src/routes/admin.js';
 import cmsRouter from './src/routes/cms.js';
 import pageBuilderRouter from './src/routes/pageBuilder.js';
 import mediaRouter from './src/routes/media.js';
+import pricingRouter from './src/routes/pricing.js';
 
 dotenv.config();
 
@@ -152,6 +153,7 @@ async function startServer() {
   app.use('/api/cms', cmsRouter);
   app.use('/api/page-builder', pageBuilderRouter);
   app.use('/api/media', mediaRouter);
+  app.use('/api/pricing', pricingRouter);
 
   // API Route: Live Exchange Rates
   app.get('/api/exchange-rates', async (_req, res) => {

@@ -308,3 +308,74 @@ export const DEFAULT_TAX_RATES = [
   { name: 'Park Fees', rate: 0.0 },
   { name: 'Service Charge', rate: 0.0 },
 ];
+
+// Database row types (for API responses)
+export interface PricingRuleRow {
+  id: string;
+  entity_id: string;
+  entity_type: string;
+  rule_type: string;
+  action: string;
+  percentage_change: number;
+  fixed_amount: number;
+  start_date: string | null;
+  end_date: string | null;
+  min_travelers: number;
+  max_travelers: number | null;
+  min_days_notice: number | null;
+  is_weekend_only: boolean;
+  name: string;
+  description: string | null;
+  promo_code: string | null;
+  priority: number;
+  is_active: boolean;
+  is_approved: boolean;
+  approved_by: string | null;
+  approved_at: string | null;
+  supplier_id: string | null;
+  requires_supplier_approval: boolean;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface PricingSeasonRow {
+  id: string;
+  name: string;
+  season_type: string;
+  start_month: number;
+  start_day: number;
+  end_month: number;
+  end_day: number;
+  price_multiplier: number;
+  applies_to_all: boolean;
+  entity_ids: string[];
+  region: string | null;
+  country: string | null;
+  is_active: boolean;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface PromotionalCampaignRow {
+  id: string;
+  name: string;
+  slug: string;
+  description: string | null;
+  campaign_type: string;
+  start_date: string;
+  end_date: string;
+  discount_type: string;
+  discount_value: number;
+  max_discount: number | null;
+  min_purchase: number;
+  target_audience: string;
+  applicable_entities: string[];
+  max_uses: number | null;
+  max_uses_per_user: number;
+  current_uses: number;
+  promo_code: string | null;
+  is_auto_apply: boolean;
+  status: string;
+  created_at: string;
+  updated_at: string;
+}

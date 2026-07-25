@@ -2,6 +2,7 @@
  * Pricing Service
  * 
  * Service for managing pricing rules, campaigns, and calculations.
+ * Integrates with PostgreSQL database when available.
  */
 
 import {
@@ -18,6 +19,15 @@ import {
   DEFAULT_SEASONS,
 } from './types';
 import { calculatePrice, validatePromoCode } from './calculator';
+
+// Database integration (lazy import to avoid circular dependencies)
+let db: typeof import('../../db/index.js') | null = null;
+async function getDb() {
+  if (!db) {
+    db = await import('../../db/index.js');
+  }
+  return db;
+}
 
 // Mock storage
 const pricingRules: Map<string, PricingRule[]> = new Map();
