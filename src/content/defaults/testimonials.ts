@@ -1,0 +1,81 @@
+/**
+ * Default Testimonials/Reviews Content
+ * Premium traveler reviews and testimonials
+ */
+
+export const DEFAULT_TESTIMONIALS = [
+  {
+    id: 'testimonial-1',
+    name: 'Makena Kamau',
+    location: 'Nairobi, Kenya',
+    avatar: 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=100',
+    rating: 5,
+    title: 'A Safari Beyond Our Wildest Dreams',
+    content: 'The Angama Mara exceeded every expectation. Watching the wildebeest migration from our private deck while sipping champagne was a once-in-a-lifetime experience. Our guide Thomas knew exactly where to find the Marsh Pride lions.',
+    safariPackage: 'Great Migration Spectacular - 7 Days',
+    travelDate: '2025-09-15',
+    featured: true,
+  },
+  {
+    id: 'testimonial-2',
+    name: 'James & Emily Thornton',
+    location: 'London, United Kingdom',
+    avatar: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=100',
+    rating: 5,
+    title: 'Gorilla Trekking in Rwanda - Life Changing',
+    content: 'The moment we came face-to-face with the Susa family gorillas, we understood why Dian Fossey dedicated her life to protecting them. Our ranger Emmanuel made the experience so special with his knowledge and respect for the animals.',
+    safariPackage: 'Rwanda Gorilla Discovery - 5 Days',
+    travelDate: '2025-07-22',
+    featured: true,
+  },
+  {
+    id: 'testimonial-3',
+    name: 'Sarah Chen',
+    location: 'Singapore',
+    avatar: 'https://images.unsplash.com/photo-1438761681033-6461ffad8d80?w=100',
+    rating: 5,
+    title: 'Perfect Honeymoon in the Serengeti',
+    content: 'Singita Sasakwa Lodge was the perfect blend of luxury and wilderness. The infinity pool overlooking the plains at sunset, the private dinners under the stars, and the incredible wildlife - we couldn\'t have asked for a better honeymoon.',
+    safariPackage: 'Serengeti Luxury Escape - 6 Days',
+    travelDate: '2025-08-10',
+    featured: true,
+  },
+  {
+    id: 'testimonial-4',
+    name: 'David Okonkwo',
+    location: 'Lagos, Nigeria',
+    avatar: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=100',
+    rating: 5,
+    title: 'Family Safari with Young Kids - Made Easy',
+    content: 'Traveling with our 8 and 10-year-old seemed daunting, but Ident Africa\'s family packages made it seamless. The Giraffe Manor was a highlight - our kids still talk about the giraffes eating from their hands!',
+    safariPackage: 'East Africa Family Adventure - 10 Days',
+    travelDate: '2025-12-20',
+    featured: false,
+  },
+  {
+    id: 'testimonial-5',
+    name: 'Maria Santos',
+    location: 'São Paulo, Brazil',
+    avatar: 'https://images.unsplash.com/photo-1544005313-94ddf0286df2?w=100',
+    rating: 5,
+    title: 'Photography Dream Come True',
+    content: 'The photography safari add-on was worth every penny. Our guide Moses had an uncanny ability to position the vehicle for perfect light, and the custom beanbag mounts were a game-changer for capturing cheetahs on the run.',
+    safariPackage: 'Predator Tracking Safari - 8 Days',
+    travelDate: '2025-10-05',
+    featured: false,
+  },
+  {
+    id: 'testimonial-6',
+    name: 'Michael & Lisa Park',
+    location: 'Toronto, Canada',
+    avatar: 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=100',
+    rating: 5,
+    title: 'Zanzibar Extension - The Perfect Ending',
+    content: 'After our Tanzania safari, the Baraza Resort in Zanzibar was the perfect relaxation. The private dhow cruise with sunset dinner was incredibly romantic. Ident Africa\'s attention to flow between adventure and relaxation was spot on.',
+    safariPackage: 'Ultimate East Africa Circuit - 14 Days',
+    travelDate: '2025-11-12',
+    featured: false,
+  },
+];
+
+export type DefaultTestimonial = typeof DEFAULT_TESTIMONIALS[number];
