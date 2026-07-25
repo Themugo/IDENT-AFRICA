@@ -18,6 +18,7 @@ import usersRouter from './src/routes/users.js';
 import paymentsRouter from './src/routes/payments.js';
 import suppliersRouter from './src/routes/suppliers.js';
 import adminRouter from './src/routes/admin.js';
+import cmsRouter from './src/routes/cms.js';
 
 dotenv.config();
 
@@ -146,6 +147,7 @@ async function startServer() {
   app.use('/api/payments', paymentsRouter);
   app.use('/api/suppliers', suppliersRouter);
   app.use('/api/admin', adminRouter);
+  app.use('/api/cms', cmsRouter);
 
   // API Route: Live Exchange Rates
   app.get('/api/exchange-rates', async (_req, res) => {

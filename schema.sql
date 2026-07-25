@@ -528,3 +528,159 @@ CREATE INDEX IF NOT EXISTS idx_password_reset_user ON password_resets(user_id);
 -- =============================================================================
 -- END OF SCHEMA
 -- =============================================================================
+
+-- =============================================================================
+-- CMS TABLES: Content Management System
+-- =============================================================================
+
+-- =============================================================================
+-- 19. CMS HOMEPAGE TABLE
+-- =============================================================================
+CREATE TABLE IF NOT EXISTS cms_homepage (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    config JSONB NOT NULL,
+    is_active BOOLEAN DEFAULT false,
+    updated_by VARCHAR(255) NOT NULL,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP NOT NULL,
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP NOT NULL
+);
+
+CREATE INDEX IF NOT EXISTS idx_cms_homepage_active ON cms_homepage(is_active) WHERE is_active = true;
+
+-- =============================================================================
+-- 20. CMS THEME TABLE
+-- =============================================================================
+CREATE TABLE IF NOT EXISTS cms_theme (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    config JSONB NOT NULL,
+    updated_by VARCHAR(255) NOT NULL,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP NOT NULL,
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP NOT NULL
+);
+
+-- =============================================================================
+-- 21. CMS MEDIA TABLE
+-- =============================================================================
+CREATE TABLE IF NOT EXISTS cms_media (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    filename VARCHAR(255) NOT NULL,
+    original_name VARCHAR(255) NOT NULL,
+    url TEXT NOT NULL,
+    thumbnail_url TEXT,
+    mime_type VARCHAR(100) NOT NULL,
+    size BIGINT NOT NULL,
+    width INTEGER,
+    height INTEGER,
+    alt VARCHAR(255),
+    caption TEXT,
+    tags TEXT[] DEFAULT '{}',
+    folder VARCHAR(255),
+    uploaded_by VARCHAR(255) NOT NULL,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP NOT NULL
+);
+
+CREATE INDEX IF NOT EXISTS idx_cms_media_folder ON cms_media(folder);
+CREATE INDEX IF NOT EXISTS idx_cms_media_tags ON cms_media USING GIN(tags);
+CREATE INDEX IF NOT EXISTS idx_cms_media_created ON cms_media(created_at DESC);
+
+-- =============================================================================
+-- 22. CMS ACCOMMODATION TABLE (extends lodges with CMS fields)
+-- =============================================================================
+CREATE TABLE IF NOT EXISTS cms_accommodation (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    lodge_id UUID REFERENCES lodges(id) ON DELETE CASCADE,
+    custom_data JSONB,
+    is_featured BOOLEAN DEFAULT false,
+    display_order INTEGER DEFAULT 0,
+    seo_title VARCHAR(255),
+    seo_description TEXT,
+    seo_keywords TEXT[],
+    og_image TEXT,
+    created_by VARCHAR(255) NOT NULL,
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP NOT NULL
+);
+
+-- =============================================================================
+-- 23. CMS EXPERIENCES TABLE
+-- =============================================================================
+CREATE TABLE IF NOT EXISTS cms_experiences (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    experience_data JSONB NOT NULL,
+    destination_id UUID REFERENCES destinations(id) ON DELETE SET NULL,
+    is_featured BOOLEAN DEFAULT false,
+    is_active BOOLEAN DEFAULT true,
+    display_order INTEGER DEFAULT 0,
+    created_by VARCHAR(255) NOT NULL,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP NOT NULL,
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP NOT NULL
+);
+
+CREATE INDEX IF NOT EXISTS idx_cms_exp_destination ON cms_experiences(destination_id);
+CREATE INDEX IF NOT EXISTS idx_cms_exp_featured ON cms_experiences(is_featured);
+
+-- =============================================================================
+-- 24. CMS PACKAGES TABLE
+-- =============================================================================
+CREATE TABLE IF NOT EXISTS cms_packages (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    package_data JSONB NOT NULL,
+    is_featured BOOLEAN DEFAULT false,
+    is_active BOOLEAN DEFAULT true,
+    display_order INTEGER DEFAULT 0,
+    created_by VARCHAR(255) NOT NULL,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP NOT NULL,
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP NOT NULL
+);
+
+CREATE INDEX IF NOT EXISTS idx_cms_pkg_featured ON cms_packages(is_featured);
+
+-- =============================================================================
+-- 25. CMS TESTIMONIALS TABLE
+-- =============================================================================
+CREATE TABLE IF NOT EXISTS cms_testimonials (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    name VARCHAR(255) NOT NULL,
+    location VARCHAR(255),
+    avatar_url TEXT,
+    rating INTEGER CHECK (rating >= 1 AND rating <= 5),
+    title VARCHAR(255) NOT NULL,
+    content TEXT NOT NULL,
+    safari_package VARCHAR(255),
+    travel_date DATE,
+    is_featured BOOLEAN DEFAULT false,
+    is_active BOOLEAN DEFAULT true,
+    display_order INTEGER DEFAULT 0,
+    created_by VARCHAR(255) NOT NULL,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP NOT NULL,
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP NOT NULL
+);
+
+CREATE INDEX IF NOT EXISTS idx_cms_test_featured ON cms_testimonials(is_featured);
+CREATE INDEX IF NOT EXISTS idx_cms_test_active ON cms_testimonials(is_active);
+
+-- =============================================================================
+-- 26. CMS PARTNERS TABLE
+-- =============================================================================
+CREATE TABLE IF NOT EXISTS cms_partners (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    name VARCHAR(255) NOT NULL,
+    logo TEXT NOT NULL,
+    website TEXT,
+    description TEXT,
+    partner_type VARCHAR(50) CHECK (partner_type IN ('airline', 'hotel_chain', 'tour_operator', 'conservation', 'government', 'media')),
+    tier VARCHAR(20) CHECK (tier IN ('platinum', 'gold', 'silver', 'bronze')),
+    is_featured BOOLEAN DEFAULT false,
+    is_active BOOLEAN DEFAULT true,
+    display_order INTEGER DEFAULT 0,
+    created_by VARCHAR(255) NOT NULL,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP NOT NULL,
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP NOT NULL
+);
+
+CREATE INDEX IF NOT EXISTS idx_cms_partner_type ON cms_partners(partner_type);
+CREATE INDEX IF NOT EXISTS idx_cms_partner_tier ON cms_partners(tier);
+CREATE INDEX IF NOT EXISTS idx_cms_partner_featured ON cms_partners(is_featured);
+
+-- =============================================================================
+-- END OF CMS TABLES
+-- =============================================================================
