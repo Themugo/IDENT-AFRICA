@@ -20,6 +20,7 @@ import suppliersRouter from './src/routes/suppliers.js';
 import adminRouter from './src/routes/admin.js';
 import cmsRouter from './src/routes/cms.js';
 import pageBuilderRouter from './src/routes/pageBuilder.js';
+import mediaRouter from './src/routes/media.js';
 
 dotenv.config();
 
@@ -150,6 +151,7 @@ async function startServer() {
   app.use('/api/admin', adminRouter);
   app.use('/api/cms', cmsRouter);
   app.use('/api/page-builder', pageBuilderRouter);
+  app.use('/api/media', mediaRouter);
 
   // API Route: Live Exchange Rates
   app.get('/api/exchange-rates', async (_req, res) => {
