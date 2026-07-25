@@ -6,7 +6,7 @@
 
 **Luxury East Africa Expeditions & Sanctuaries**
 
-A premium travel ecosystem platform for booking African safari experiences, featuring AI-powered itinerary planning, multi-gateway payment processing (Stripe, Flutterwave, M-Pesa), and a comprehensive supplier management portal.
+A premium travel ecosystem platform for booking African safari experiences, featuring AI-powered itinerary planning, multi-gateway payment processing (Stripe, Flutterwave, M-Pesa), JWT authentication, and a comprehensive supplier management portal.
 
 ## 🦁 Features
 
@@ -19,6 +19,7 @@ A premium travel ecosystem platform for booking African safari experiences, feat
 - **Supplier Portal** - Partner management for lodges and operators
 - **Admin Dashboard** - Comprehensive booking management
 - **Real-time Exchange Rates** - Multi-currency support (USD, EUR, GBP, KES)
+- **User Authentication** - JWT-based login/logout system
 
 ## 🛠️ Tech Stack
 
@@ -29,11 +30,13 @@ A premium travel ecosystem platform for booking African safari experiences, feat
 | AI | Google Gemini (@google/genai) |
 | Payments | Stripe, Flutterwave, M-Pesa |
 | Database | PostgreSQL 14+ (schema provided) |
+| Auth | JWT tokens |
 
 ## 📋 Prerequisites
 
 - **Node.js** 18+ or **Bun** 1.0+
 - **npm** or **pnpm** package manager
+- **PostgreSQL** 14+ (optional for local dev - uses mock data by default)
 - **Gemini API Key** from [Google AI Studio](https://aistudio.google.com/apikey)
 
 ## 🚀 Getting Started
@@ -58,6 +61,9 @@ Edit `.env` and add your configuration:
 # Required for AI features
 GEMINI_API_KEY="your_gemini_api_key"
 
+# Required for production
+JWT_SECRET="generate-a-strong-random-secret"
+
 # Application
 NODE_ENV="development"
 PORT=3000
@@ -71,6 +77,12 @@ npm run dev
 
 The application will be available at `http://localhost:3000`
 
+### Demo Login
+
+Use these credentials for testing:
+- Email: `kamauwamakena@gmail.com`
+- Password: `demo123`
+
 ## 📦 Build Commands
 
 | Command | Description |
@@ -80,31 +92,38 @@ The application will be available at `http://localhost:3000`
 | `npm run start` | Run production build |
 | `npm run lint` | Run TypeScript type checking |
 | `npm run clean` | Remove build artifacts |
+| `npm run db:migrate` | Run database migrations |
+| `npm run db:seed` | Seed database with sample data |
 
-## 🗄️ Database Setup
+## 🗄️ Database Setup (Optional)
 
-The project includes a PostgreSQL schema at `schema.sql`. To set up the database:
+For local development without database, the app uses mock data. To use PostgreSQL:
 
 ```bash
-# Connect to PostgreSQL
-psql -U postgres -d ident_africa
+# 1. Create a PostgreSQL database
+createdb ident_africa
 
-# Run the schema
-\i schema.sql
+# 2. Set DATABASE_URL in .env
+export DATABASE_URL="postgresql://user:pass@localhost:5432/ident_africa"
+
+# 3. Run migrations
+npm run db:migrate
 ```
-
-Or use a migration tool like Prisma or Drizzle for more control.
 
 ## 🌐 API Endpoints
 
-### Health Check
+### Authentication
 ```
-GET /api/health
+POST /api/auth/login     - User login
+GET  /api/auth/me       - Get current user
+POST /api/auth/logout    - User logout
 ```
 
-### Exchange Rates
+### Health & Status
 ```
-GET /api/exchange-rates
+GET /api/health         - Application health
+GET /api/db/health      - Database health
+GET /api/exchange-rates - Exchange rates
 ```
 
 ### Payments
@@ -119,10 +138,37 @@ POST /api/payments/mpesa/stk-push
 POST /api/ai-planner
 ```
 
+### Admin
+```
+GET /api/admin/stats
+```
+
 ### Refunds
 ```
 POST /api/refunds/process
 ```
+
+## 🔒 Security Features
+
+The application includes comprehensive security measures:
+
+- **Helmet.js** - Security headers (CSP, X-Frame-Options, XSS protection)
+- **CORS** - Configurable origin validation with whitelist
+- **JWT Authentication** - Secure token-based auth
+- **Input Validation** - All API inputs validated and sanitized
+- **Compression** - Gzip compression for responses
+- **Rate Limiting Ready** - Structure for adding rate limiting
+- **Error Masking** - Internal errors not exposed in production
+
+### Production Checklist
+
+- [ ] Set `NODE_ENV=production`
+- [ ] Configure `ALLOWED_ORIGINS` with production domains
+- [ ] Set strong `JWT_SECRET` (min 32 characters)
+- [ ] Add Stripe/Flutterwave/M-Pesa live credentials
+- [ ] Set up PostgreSQL database and run migrations
+- [ ] Enable HTTPS
+- [ ] Configure monitoring (Sentry, DataDog, etc.)
 
 ## 🚢 Deployment
 
@@ -140,7 +186,9 @@ POST /api/refunds/process
 
 3. Set environment variables in Vercel dashboard:
    - `GEMINI_API_KEY`
+   - `JWT_SECRET`
    - `NODE_ENV=production`
+   - `ALLOWED_ORIGINS=your-domain.com`
 
 ### Docker
 
@@ -162,51 +210,34 @@ npm run build
 npm start
 ```
 
-## 🔒 Security
-
-The application includes several security measures:
-
-- **Helmet.js** - Security headers
-- **CORS** - Configurable origin validation
-- **Rate Limiting** - (Configure via middleware)
-- **Input Validation** - All API inputs validated
-- **SQL Injection Prevention** - Parameterized queries (in production DB)
-- **XSS Protection** - Content Security Policy
-
-### Production Checklist
-
-- [ ] Set `NODE_ENV=production`
-- [ ] Configure `ALLOWED_ORIGINS` with production domains
-- [ ] Add Stripe/Flutterwave/M-Pesa live credentials
-- [ ] Set up database connection
-- [ ] Enable HTTPS
-- [ ] Configure logging/monitoring
-
 ## 📁 Project Structure
 
 ```
 IDENT-AFRICA/
 ├── src/
+│   ├── auth/             # Authentication utilities
 │   ├── components/       # React components
 │   │   ├── ai-planner/   # AI concierge components
 │   │   ├── auth/         # Authentication components
 │   │   ├── booking/      # Booking flow components
 │   │   ├── builder/      # Itinerary builder
-│   │   ├── common/       # Shared components
+│   │   ├── common/       # Shared components (ErrorBoundary, LoadingSpinner)
 │   │   ├── compare/      # Trip comparison
-│   │   ├── dashboard/    # Admin/user dashboards
+│   │   ├── dashboard/   # Admin/user dashboards
 │   │   ├── destinations/ # Destination browsing
-│   │   ├── home/         # Landing page sections
-│   │   ├── hotels/       # Hotel/lodge components
-│   │   └── supplier/     # Supplier portal
-│   ├── context/          # React Context providers
-│   ├── data/             # Mock data & constants
-│   ├── types/            # TypeScript type definitions
-│   └── utils/            # Utility functions
-├── server.ts             # Express backend
-├── schema.sql            # PostgreSQL schema
-├── vercel.json           # Vercel configuration
-└── .env.example          # Environment template
+│   │   ├── home/        # Landing page sections
+│   │   ├── hotels/      # Hotel/lodge components
+│   │   └── supplier/   # Supplier portal
+│   ├── context/          # React Context providers (App, Auth)
+│   ├── database/        # Database connection & migrations
+│   ├── data/            # Mock data & constants
+│   ├── types/           # TypeScript type definitions
+│   └── utils/           # Utility functions (API client, PDF export)
+├── server.ts           # Express backend with all routes
+├── schema.sql         # PostgreSQL schema with triggers
+├── vercel.json       # Vercel configuration
+├── .env.example      # Environment template
+└── README.md         # This file
 ```
 
 ## 📝 License

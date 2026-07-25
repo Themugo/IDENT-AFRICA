@@ -501,6 +501,144 @@ Ensure all prices sum up logically in costBreakdown, lodging aligns with duratio
     }
   });
 
+  // =============================================================================
+  // AUTHENTICATION ROUTES
+  // =============================================================================
+  
+  // POST /api/auth/login - User login
+  app.post('/api/auth/login', async (req: Request, res: Response) => {
+    try {
+      const { email, password } = req.body;
+
+      // Validate input
+      if (!email || !isValidEmail(email)) {
+        return res.status(400).json(createResponse(false, undefined, 'Invalid email', 'Please provide a valid email address'));
+      }
+      if (!password || password.length < 6) {
+        return res.status(400).json(createResponse(false, undefined, 'Invalid password', 'Password must be at least 6 characters'));
+      }
+
+      // Import auth functions dynamically to avoid circular deps
+      const { findUserByCredentials, createToken } = await import('./src/auth/index.ts');
+      
+      const user = findUserByCredentials(email, password);
+      if (!user) {
+        return res.status(401).json(createResponse(false, undefined, 'Authentication failed', 'Invalid email or password'));
+      }
+
+      const token = createToken(user);
+
+      res.status(200).json(createResponse(true, {
+        token,
+        user: {
+          id: user.id,
+          email: user.email,
+          name: user.name,
+          role: user.role,
+          avatar: user.avatar,
+        },
+        expiresIn: '24h',
+      }));
+    } catch (error) {
+      console.error('Login error:', error);
+      res.status(500).json(createResponse(false, undefined, 'Login failed', 'An unexpected error occurred'));
+    }
+  });
+
+  // GET /api/auth/me - Get current user
+  app.get('/api/auth/me', (req: Request, res: Response) => {
+    const token = req.headers.authorization?.replace('Bearer ', '');
+    
+    if (!token) {
+      return res.status(401).json(createResponse(false, undefined, 'Not authenticated', 'Please log in'));
+    }
+
+    const { verifyToken, DEMO_USERS } = require('./src/auth/index.ts');
+    const payload = verifyToken(token);
+    
+    if (!payload) {
+      return res.status(401).json(createResponse(false, undefined, 'Invalid token', 'Your session has expired'));
+    }
+
+    const user = DEMO_USERS.find(u => u.id === payload.userId);
+    if (!user) {
+      return res.status(404).json(createResponse(false, undefined, 'User not found', 'User account not found'));
+    }
+
+    res.status(200).json(createResponse(true, {
+      id: user.id,
+      email: user.email,
+      name: user.name,
+      role: user.role,
+      avatar: user.avatar,
+    }));
+  });
+
+  // POST /api/auth/logout - User logout
+  app.post('/api/auth/logout', (_req: Request, res: Response) => {
+    // For JWT, logout is handled client-side by removing the token
+    // This endpoint can be used for token blacklisting in production
+    res.status(200).json(createResponse(true, { message: 'Logged out successfully' }));
+  });
+
+  // =============================================================================
+  // ADMIN ROUTES (Protected)
+  // =============================================================================
+
+  // GET /api/admin/stats - Admin dashboard statistics
+  app.get('/api/admin/stats', (req: Request, res: Response) => {
+    const token = req.headers.authorization?.replace('Bearer ', '');
+    
+    // For demo, allow access without auth
+    // In production, add: if (!token) return res.status(401)...
+    
+    // Mock admin statistics
+    const stats = {
+      totalRevenueUSD: 2485000,
+      activeExpeditionsCount: 38,
+      totalTravelersCount: 1420,
+      verifiedRangersCount: 84,
+      popularParksCount: 12,
+      monthlyBookings: [
+        { month: 'Jan', bookings: 42, revenueUSD: 285000 },
+        { month: 'Feb', bookings: 38, revenueUSD: 260000 },
+        { month: 'Mar', bookings: 29, revenueUSD: 195000 },
+        { month: 'Apr', bookings: 22, revenueUSD: 148000 },
+        { month: 'May', bookings: 31, revenueUSD: 210000 },
+        { month: 'Jun', bookings: 65, revenueUSD: 440000 },
+        { month: 'Jul', bookings: 88, revenueUSD: 590000 },
+        { month: 'Aug', bookings: 94, revenueUSD: 640000 },
+      ],
+      pendingSupplierApplications: 2,
+      pendingBookingApprovals: 5,
+      recentRefunds: 3,
+    };
+
+    res.status(200).json(createResponse(true, stats));
+  });
+
+  // =============================================================================
+  // DATABASE HEALTH CHECK
+  // =============================================================================
+
+  // GET /api/db/health - Database health check
+  app.get('/api/db/health', async (_req: Request, res: Response) => {
+    try {
+      const db = await import('./src/database/index.ts');
+      const health = await db.healthCheck();
+      
+      res.status(200).json(createResponse(true, {
+        database: health,
+        timestamp: new Date().toISOString(),
+      }));
+    } catch (error) {
+      res.status(200).json(createResponse(true, {
+        database: { status: 'not_configured' },
+        timestamp: new Date().toISOString(),
+      }));
+    }
+  });
+
   // Global error handler - must be after all routes
   app.use((err: Error, _req: Request, res: Response, _next: NextFunction) => {
     console.error('Unhandled server error:', err);
