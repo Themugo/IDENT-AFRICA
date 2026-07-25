@@ -898,3 +898,226 @@ CREATE INDEX idx_analytics_conversion ON journey_analytics(conversion_source);
 -- =============================================================================
 -- END OF TRAVELER JOURNEY
 -- =============================================================================
+
+-- =============================================================================
+-- PRICING RULES TABLE
+-- Dynamic pricing management for packages and destinations
+-- =============================================================================
+
+CREATE TYPE pricing_rule_type AS ENUM (
+    'base',
+    'season',
+    'weekend',
+    'peak',
+    'discount',
+    'promotion',
+    'early_bird',
+    'last_minute',
+    'group',
+    'supplier_adjustment'
+);
+
+CREATE TYPE pricing_action AS ENUM (
+    'add',
+    'subtract',
+    'multiply',
+    'percentage'
+);
+
+CREATE TABLE IF NOT EXISTS pricing_rules (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    entity_id VARCHAR(128) NOT NULL,
+    entity_type VARCHAR(32) NOT NULL CHECK (entity_type IN ('destination', 'package', 'experience')),
+    
+    -- Rule type
+    rule_type pricing_rule_type NOT NULL,
+    
+    -- Price adjustment
+    action pricing_action NOT NULL DEFAULT 'percentage',
+    percentage_change DECIMAL(5,2) DEFAULT 0,
+    fixed_amount DECIMAL(12,2) DEFAULT 0,
+    
+    -- Timing
+    start_date TIMESTAMP WITH TIME ZONE,
+    end_date TIMESTAMP WITH TIME ZONE,
+    
+    -- Conditions
+    min_travelers INT DEFAULT 1,
+    max_travelers INT,
+    min_days_notice INT,
+    is_weekend_only BOOLEAN DEFAULT FALSE,
+    
+    -- Metadata
+    name VARCHAR(255) NOT NULL,
+    description TEXT,
+    promo_code VARCHAR(32),
+    priority INT DEFAULT 0,
+    
+    -- Status
+    is_active BOOLEAN DEFAULT TRUE,
+    is_approved BOOLEAN DEFAULT FALSE,
+    approved_by VARCHAR(64),
+    approved_at TIMESTAMP WITH TIME ZONE,
+    
+    -- Supplier pricing
+    supplier_id VARCHAR(64),
+    requires_supplier_approval BOOLEAN DEFAULT FALSE,
+    
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    
+    CONSTRAINT valid_date_range CHECK (
+        end_date IS NULL OR start_date IS NULL OR end_date > start_date
+    ),
+    CONSTRAINT valid_percentage CHECK (
+        percentage_change >= -100 AND percentage_change <= 500
+    )
+);
+
+-- Indexes
+CREATE INDEX idx_pricing_entity ON pricing_rules(entity_type, entity_id);
+CREATE INDEX idx_pricing_dates ON pricing_rules(start_date, end_date);
+CREATE INDEX idx_pricing_active ON pricing_rules(is_active, is_approved);
+CREATE INDEX idx_pricing_promo ON pricing_rules(promo_code) WHERE promo_code IS NOT NULL;
+CREATE INDEX idx_pricing_supplier ON pricing_rules(supplier_id) WHERE supplier_id IS NOT NULL;
+
+-- Trigger for updated_at
+CREATE OR REPLACE FUNCTION update_pricing_timestamp()
+RETURNS TRIGGER AS $$
+BEGIN
+    NEW.updated_at = CURRENT_TIMESTAMP;
+    RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+CREATE TRIGGER trg_pricing_updated
+    BEFORE UPDATE ON pricing_rules
+    FOR EACH ROW
+    EXECUTE FUNCTION update_pricing_timestamp();
+
+-- =============================================================================
+-- PRICING SEASONS TABLE
+-- Define standard pricing seasons
+-- =============================================================================
+
+CREATE TABLE IF NOT EXISTS pricing_seasons (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    name VARCHAR(128) NOT NULL,
+    season_type VARCHAR(32) NOT NULL CHECK (season_type IN ('peak', 'high', 'shoulder', 'low')),
+    
+    -- Date pattern (can be recurring annually)
+    start_month INT NOT NULL CHECK (start_month BETWEEN 1 AND 12),
+    start_day INT NOT NULL CHECK (start_day BETWEEN 1 AND 31),
+    end_month INT NOT NULL CHECK (end_month BETWEEN 1 AND 12),
+    end_day INT NOT NULL CHECK (end_day BETWEEN 1 AND 31),
+    
+    -- Price multiplier
+    price_multiplier DECIMAL(4,2) NOT NULL DEFAULT 1.00,
+    
+    -- Apply to all or specific entities
+    applies_to_all BOOLEAN DEFAULT TRUE,
+    entity_ids JSONB DEFAULT '[]'::jsonb,
+    
+    -- Region specific
+    region VARCHAR(64),
+    country VARCHAR(64),
+    
+    is_active BOOLEAN DEFAULT TRUE,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE INDEX idx_seasons_type ON pricing_seasons(season_type);
+CREATE INDEX idx_seasons_dates ON pricing_seasons(start_month, end_month);
+
+CREATE TRIGGER trg_seasons_updated
+    BEFORE UPDATE ON pricing_seasons
+    FOR EACH ROW
+    EXECUTE FUNCTION update_pricing_timestamp();
+
+-- Seed default seasons
+INSERT INTO pricing_seasons (name, season_type, start_month, start_day, end_month, end_day, price_multiplier, region) VALUES
+    ('Peak Season - Great Migration', 'peak', 6, 1, 10, 31, 1.50, 'East Africa'),
+    ('High Season - End Year', 'high', 12, 15, 1, 15, 1.35, 'East Africa'),
+    ('Shoulder Season - March-May', 'shoulder', 3, 1, 5, 31, 0.85, 'East Africa'),
+    ('Low Season - Long Rains', 'low', 4, 1, 5, 31, 0.75, 'East Africa')
+ON CONFLICT DO NOTHING;
+
+-- =============================================================================
+-- PROMOTIONAL CAMPAIGNS TABLE
+-- Marketing campaigns with pricing rules
+-- =============================================================================
+
+CREATE TABLE IF NOT EXISTS promotional_campaigns (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    name VARCHAR(255) NOT NULL,
+    slug VARCHAR(128) UNIQUE NOT NULL,
+    description TEXT,
+    
+    -- Campaign type
+    campaign_type VARCHAR(32) NOT NULL CHECK (campaign_type IN ('flash_sale', 'seasonal', 'loyalty', 'referral', 'early_bird', 'last_minute')),
+    
+    -- Timing
+    start_date TIMESTAMP WITH TIME ZONE NOT NULL,
+    end_date TIMESTAMP WITH TIME ZONE NOT NULL,
+    
+    -- Discount configuration
+    discount_type VARCHAR(16) NOT NULL CHECK (discount_type IN ('percentage', 'fixed', 'bogo', 'tiered')),
+    discount_value DECIMAL(12,2) NOT NULL,
+    max_discount DECIMAL(12,2),
+    min_purchase DECIMAL(12,2) DEFAULT 0,
+    
+    -- Targeting
+    target_audience VARCHAR(32) DEFAULT 'all' CHECK (target_audience IN ('all', 'new_users', 'returning', 'vip', 'suppliers')),
+    applicable_entities JSONB DEFAULT '[]'::jsonb,
+    
+    -- Limits
+    max_uses INT,
+    max_uses_per_user INT DEFAULT 1,
+    current_uses INT DEFAULT 0,
+    
+    -- Promo code
+    promo_code VARCHAR(32) UNIQUE,
+    is_auto_apply BOOLEAN DEFAULT FALSE,
+    
+    -- Status
+    status VARCHAR(16) DEFAULT 'draft' CHECK (status IN ('draft', 'scheduled', 'active', 'paused', 'completed', 'cancelled')),
+    
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE INDEX idx_campaign_dates ON promotional_campaigns(start_date, end_date);
+CREATE INDEX idx_campaign_status ON promotional_campaigns(status);
+CREATE INDEX idx_campaign_promo ON promotional_campaigns(promo_code) WHERE promo_code IS NOT NULL;
+
+CREATE TRIGGER trg_campaign_updated
+    BEFORE UPDATE ON promotional_campaigns
+    FOR EACH ROW
+    EXECUTE FUNCTION update_pricing_timestamp();
+
+-- =============================================================================
+-- CAMPAIGN REDEMPTIONS TABLE
+-- Track promo code usage
+-- =============================================================================
+
+CREATE TABLE IF NOT EXISTS campaign_redemptions (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    campaign_id UUID NOT NULL REFERENCES promotional_campaigns(id) ON DELETE CASCADE,
+    user_id VARCHAR(64) NOT NULL,
+    booking_id VARCHAR(128),
+    
+    promo_code VARCHAR(32) NOT NULL,
+    discount_applied DECIMAL(12,2) NOT NULL,
+    
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    
+    CONSTRAINT unique_user_campaign UNIQUE (campaign_id, user_id, booking_id)
+);
+
+CREATE INDEX idx_redemption_campaign ON campaign_redemptions(campaign_id);
+CREATE INDEX idx_redemption_user ON campaign_redemptions(user_id);
+
+-- =============================================================================
+-- END OF PRICING
+-- =============================================================================
