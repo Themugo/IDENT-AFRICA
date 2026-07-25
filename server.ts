@@ -1,19 +1,129 @@
-import express from 'express';
+import express, { Request, Response, NextFunction } from 'express';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import { GoogleGenAI } from '@google/genai';
 import dotenv from 'dotenv';
+
+// Security headers
+import helmet from 'helmet';
+import cors from 'cors';
+import compression from 'compression';
 
 dotenv.config();
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
+// Environment configuration with validation
+const PORT = parseInt(process.env.PORT || '3000', 10);
+const NODE_ENV = process.env.NODE_ENV || 'development';
+const ALLOWED_ORIGINS = process.env.ALLOWED_ORIGINS?.split(',') || ['http://localhost:3000', 'http://localhost:5173'];
+const API_TIMEOUT = 10000; // 10 second timeout for external APIs
+
+// Request validation helpers
+interface ApiResponse<T = unknown> {
+  success: boolean;
+  data?: T;
+  error?: string;
+  details?: string;
+  timestamp: string;
+  requestId?: string;
+}
+
+function createResponse<T>(success: boolean, data?: T, error?: string, details?: string): ApiResponse<T> {
+  return {
+    success,
+    ...(success ? { data } : { error, details }),
+    timestamp: new Date().toISOString(),
+  };
+}
+
+// Generate unique request ID
+function generateRequestId(): string {
+  return `req_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`;
+}
+
+// Input sanitization helper
+function sanitizeString(input: string): string {
+  if (typeof input !== 'string') return '';
+  return input.trim().slice(0, 1000); // Limit length and trim
+}
+
+// Validate email format
+function isValidEmail(email: string): boolean {
+  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+  return emailRegex.test(email);
+}
+
+// Validate phone number (basic)
+function isValidPhone(phone: string): boolean {
+  const phoneRegex = /^\+?[\d\s\-()]{8,20}$/;
+  return phoneRegex.test(phone);
+}
+
+// Production CORS configuration
+const corsOptions: cors.CorsOptions = {
+  origin: (origin, callback) => {
+    // Allow requests with no origin (mobile apps, curl, etc.)
+    if (!origin) {
+      return callback(null, true);
+    }
+    if (ALLOWED_ORIGINS.includes(origin) || NODE_ENV === 'development') {
+      return callback(null, true);
+    }
+    callback(new Error(`CORS policy violation: origin ${origin} not allowed`));
+  },
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With'],
+  exposedHeaders: ['X-Request-Id'],
+  credentials: true,
+  maxAge: 86400, // 24 hours
+};
+
 async function startServer() {
   const app = express();
-  const PORT = 3000;
 
-  app.use(express.json());
+  // Security middleware
+  app.use(helmet({
+    contentSecurityPolicy: {
+      directives: {
+        defaultSrc: ["'self'"],
+        styleSrc: ["'self'", "'unsafe-inline'", "https://fonts.googleapis.com"],
+        fontSrc: ["'self'", "https://fonts.gstatic.com"],
+        imgSrc: ["'self'", "data:", "https://images.unsplash.com", "https://ai.google.dev"],
+        scriptSrc: ["'self'"],
+        connectSrc: ["'self'", "https://open.er-api.com", "https://generativelanguage.googleapis.com"],
+      },
+    },
+    crossOriginEmbedderPolicy: false,
+  }));
+
+  // CORS
+  app.use(cors(corsOptions));
+
+  // Compression
+  app.use(compression());
+
+  // Body parsing with size limits
+  app.use(express.json({ limit: '10kb' }));
+  app.use(express.urlencoded({ extended: true, limit: '10kb' }));
+
+  // Request logging middleware
+  app.use((req: Request, res: Response, next: NextFunction) => {
+    const requestId = generateRequestId();
+    res.setHeader('X-Request-Id', requestId);
+    
+    const startTime = Date.now();
+    
+    res.on('finish', () => {
+      const duration = Date.now() - startTime;
+      if (NODE_ENV !== 'test') {
+        console.log(`[${new Date().toISOString()}] ${req.method} ${req.path} - ${res.statusCode} (${duration}ms) [${requestId}]`);
+      }
+    });
+    
+    next();
+  });
 
   // API Route: Live Exchange Rates
   app.get('/api/exchange-rates', async (_req, res) => {
@@ -46,7 +156,7 @@ async function startServer() {
           KES: { rate: data.rates.KES || 129.5, symbol: 'KSh ', prefix: true },
         };
 
-        return res.json({
+        return res.status(200).json({
           success: true,
           source: 'live',
           baseCurrency: 'USD',
@@ -58,7 +168,7 @@ async function startServer() {
       throw new Error('Invalid rate payload');
     } catch (err: any) {
       console.warn('Live exchange rates fetch warning (using default rates):', err.message);
-      return res.json({
+      return res.status(200).json({
         success: true,
         source: 'default',
         baseCurrency: 'USD',
@@ -70,76 +180,154 @@ async function startServer() {
 
   // API Route: Health check
   app.get('/api/health', (_req, res) => {
-    res.json({ status: 'ok', app: 'SafariFlow', timestamp: new Date().toISOString() });
+    res.status(200).json({ 
+      status: 'ok', 
+      app: 'Ident Africa', 
+      version: '1.0.0',
+      environment: NODE_ENV,
+      timestamp: new Date().toISOString() 
+    });
   });
 
   // API Route: Stripe Payment Intent
   app.post('/api/payments/stripe/create-intent', (req, res) => {
-    const { amountUSD, currency = 'USD', travelerEmail, travelerName } = req.body;
-    const paymentIntentId = `pi_${Math.random().toString(36).substring(2, 12)}_${Date.now()}`;
-    const clientSecret = `${paymentIntentId}_secret_${Math.random().toString(36).substring(2, 10)}`;
+    try {
+      const { amountUSD, currency = 'USD', travelerEmail, travelerName } = req.body;
 
-    res.json({
-      success: true,
-      gateway: 'Stripe',
-      paymentIntentId,
-      clientSecret,
-      amountUSD,
-      currency,
-      status: 'succeeded',
-      receiptUrl: `https://pay.stripe.com/receipts/safariflow/${paymentIntentId}`,
-    });
+      // Validate required fields
+      if (!amountUSD || typeof amountUSD !== 'number' || amountUSD <= 0) {
+        return res.status(400).json(createResponse(false, undefined, 'Invalid amount', 'amountUSD must be a positive number'));
+      }
+      if (amountUSD > 1000000) {
+        return res.status(400).json(createResponse(false, undefined, 'Amount exceeds limit', 'Maximum payment amount is $1,000,000 USD'));
+      }
+      if (travelerEmail && !isValidEmail(travelerEmail)) {
+        return res.status(400).json(createResponse(false, undefined, 'Invalid email', 'Please provide a valid email address'));
+      }
+      if (travelerName && typeof travelerName !== 'string') {
+        return res.status(400).json(createResponse(false, undefined, 'Invalid name', 'Traveler name must be a string'));
+      }
+
+      const paymentIntentId = `pi_${Math.random().toString(36).substring(2, 12)}_${Date.now()}`;
+      const clientSecret = `${paymentIntentId}_secret_${Math.random().toString(36).substring(2, 10)}`;
+
+      res.status(200).json(createResponse(true, {
+        gateway: 'Stripe',
+        paymentIntentId,
+        clientSecret,
+        amountUSD,
+        currency,
+        status: 'requires_payment_method',
+        receiptUrl: `https://pay.stripe.com/receipts/safariflow/${paymentIntentId}`,
+      }));
+    } catch (error) {
+      console.error('Stripe payment intent error:', error);
+      res.status(500).json(createResponse(false, undefined, 'Payment processing failed', 'An unexpected error occurred'));
+    }
   });
 
   // API Route: Flutterwave Pan-African Charge
   app.post('/api/payments/flutterwave/charge', (req, res) => {
-    const { amountUSD, currency = 'USD', travelerEmail, travelerName, channel = 'card', country = 'KE' } = req.body;
-    const tx_ref = `FLW-TX-${Math.floor(10000000 + Math.random() * 90000000)}`;
+    try {
+      const { amountUSD, currency = 'USD', travelerEmail, travelerName, channel = 'card', country = 'KE' } = req.body;
 
-    res.json({
-      status: 'success',
-      message: 'Flutterwave payment authorized',
-      tx_ref,
-      flw_ref: `FLW_REF_${Date.now()}`,
-      amount: amountUSD,
-      currency,
-      channel,
-      country,
-      customer: { email: travelerEmail, name: travelerName },
-    });
+      // Validate required fields
+      if (!amountUSD || typeof amountUSD !== 'number' || amountUSD <= 0) {
+        return res.status(400).json(createResponse(false, undefined, 'Invalid amount', 'amountUSD must be a positive number'));
+      }
+      if (!isValidEmail(travelerEmail)) {
+        return res.status(400).json(createResponse(false, undefined, 'Invalid email', 'Please provide a valid email address'));
+      }
+      if (travelerName && typeof travelerName !== 'string') {
+        return res.status(400).json(createResponse(false, undefined, 'Invalid name', 'Traveler name must be a string'));
+      }
+
+      const tx_ref = `FLW-TX-${Math.floor(10000000 + Math.random() * 90000000)}`;
+
+      res.status(200).json(createResponse(true, {
+        status: 'success',
+        message: 'Flutterwave payment authorized',
+        tx_ref,
+        flw_ref: `FLW_REF_${Date.now()}`,
+        amount: amountUSD,
+        currency,
+        channel,
+        country,
+        customer: { email: sanitizeString(travelerEmail), name: sanitizeString(travelerName || '') },
+      }));
+    } catch (error) {
+      console.error('Flutterwave payment error:', error);
+      res.status(500).json(createResponse(false, undefined, 'Payment processing failed', 'An unexpected error occurred'));
+    }
   });
 
   // API Route: M-Pesa Express STK Push
   app.post('/api/payments/mpesa/stk-push', (req, res) => {
-    const { phoneNumber, amountUSD } = req.body;
-    const checkoutRequestId = `ws_CO_${Date.now()}_${Math.floor(1000 + Math.random() * 9000)}`;
-    const merchantRequestId = `29182-${Math.floor(1000000 + Math.random() * 9000000)}-1`;
+    try {
+      const { phoneNumber, amountUSD } = req.body;
 
-    res.json({
-      MerchantRequestID: merchantRequestId,
-      CheckoutRequestID: checkoutRequestId,
-      ResponseCode: '0',
-      ResponseDescription: 'Success. Request accepted for processing',
-      CustomerMessage: `Success. Prompt sent to ${phoneNumber}. Enter M-Pesa PIN to complete payment of $${amountUSD}.`,
-    });
+      // Validate required fields
+      if (!phoneNumber || !isValidPhone(phoneNumber)) {
+        return res.status(400).json(createResponse(false, undefined, 'Invalid phone number', 'Please provide a valid phone number with country code'));
+      }
+      if (!amountUSD || typeof amountUSD !== 'number' || amountUSD <= 0) {
+        return res.status(400).json(createResponse(false, undefined, 'Invalid amount', 'amountUSD must be a positive number'));
+      }
+      if (amountUSD > 150000) {
+        return res.status(400).json(createResponse(false, undefined, 'Amount exceeds limit', 'M-Pesa maximum single transaction is KES 150,000'));
+      }
+
+      const checkoutRequestId = `ws_CO_${Date.now()}_${Math.floor(1000 + Math.random() * 9000)}`;
+      const merchantRequestId = `29182-${Math.floor(1000000 + Math.random() * 9000000)}-1`;
+
+      res.status(200).json(createResponse(true, {
+        MerchantRequestID: merchantRequestId,
+        CheckoutRequestID: checkoutRequestId,
+        ResponseCode: '0',
+        ResponseDescription: 'Success. Request accepted for processing',
+        CustomerMessage: `Success. Prompt sent to ${sanitizeString(phoneNumber)}. Enter M-Pesa PIN to complete payment of $${amountUSD}.`,
+      }));
+    } catch (error) {
+      console.error('M-Pesa STK push error:', error);
+      res.status(500).json(createResponse(false, undefined, 'Payment processing failed', 'An unexpected error occurred'));
+    }
   });
 
   // API Route: Refund Workflow Process
   app.post('/api/refunds/process', (req, res) => {
-    const { bookingId, requestedAmountUSD, reason, payoutAccount } = req.body;
-    const refundTicketId = `REF-${Math.floor(100000 + Math.random() * 900000)}`;
+    try {
+      const { bookingId, requestedAmountUSD, reason, payoutAccount } = req.body;
 
-    res.json({
-      success: true,
-      refundTicketId,
-      bookingId,
-      requestedAmountUSD,
-      reason,
-      payoutAccount,
-      status: 'Submitted',
-      estimatedDisbursementHours: 24,
-      message: `Refund claim ${refundTicketId} logged successfully into escrow auditor queue.`,
-    });
+      // Validate required fields
+      if (!bookingId || typeof bookingId !== 'string') {
+        return res.status(400).json(createResponse(false, undefined, 'Invalid booking ID', 'A valid booking ID is required'));
+      }
+      if (!requestedAmountUSD || typeof requestedAmountUSD !== 'number' || requestedAmountUSD <= 0) {
+        return res.status(400).json(createResponse(false, undefined, 'Invalid amount', 'Requested amount must be a positive number'));
+      }
+      if (!reason || typeof reason !== 'string') {
+        return res.status(400).json(createResponse(false, undefined, 'Invalid reason', 'A refund reason is required'));
+      }
+      if (payoutAccount && !isValidEmail(payoutAccount) && !isValidPhone(payoutAccount)) {
+        return res.status(400).json(createResponse(false, undefined, 'Invalid payout account', 'Please provide a valid email or phone number for payout'));
+      }
+
+      const refundTicketId = `REF-${Math.floor(100000 + Math.random() * 900000)}`;
+
+      res.status(200).json(createResponse(true, {
+        refundTicketId,
+        bookingId: sanitizeString(bookingId),
+        requestedAmountUSD,
+        reason: sanitizeString(reason),
+        payoutAccount: payoutAccount ? sanitizeString(payoutAccount) : undefined,
+        status: 'Submitted',
+        estimatedDisbursementHours: 24,
+        message: `Refund claim ${refundTicketId} logged successfully into escrow auditor queue.`,
+      }));
+    } catch (error) {
+      console.error('Refund processing error:', error);
+      res.status(500).json(createResponse(false, undefined, 'Refund processing failed', 'An unexpected error occurred'));
+    }
   });
 
   // API Route: Gemini AI Safari Concierge
@@ -147,9 +335,7 @@ async function startServer() {
     try {
       const apiKey = process.env.GEMINI_API_KEY;
       if (!apiKey) {
-        return res.status(500).json({
-          error: 'GEMINI_API_KEY is not configured in the environment. Please check your secrets configuration.'
-        });
+        return res.status(500).json(createResponse(false, undefined, 'AI service not configured', 'GEMINI_API_KEY is not configured'));
       }
 
       const {
@@ -166,12 +352,27 @@ async function startServer() {
         specialInterests = ''
       } = req.body;
 
+      // Validate input
+      if (budgetPerPersonUSD < 100 || budgetPerPersonUSD > 100000) {
+        return res.status(400).json(createResponse(false, undefined, 'Invalid budget', 'Budget must be between $100 and $100,000 USD'));
+      }
+      if (travelersCount < 1 || travelersCount > 50) {
+        return res.status(400).json(createResponse(false, undefined, 'Invalid traveler count', 'Number of travelers must be between 1 and 50'));
+      }
+      if (durationDays < 1 || durationDays > 60) {
+        return res.status(400).json(createResponse(false, undefined, 'Invalid duration', 'Duration must be between 1 and 60 days'));
+      }
+      if (!Array.isArray(countries) || countries.length === 0) {
+        return res.status(400).json(createResponse(false, undefined, 'Invalid countries', 'At least one country must be specified'));
+      }
+
       const ai = new GoogleGenAI({
         apiKey,
         httpOptions: {
           headers: {
-            'User-Agent': 'aistudio-build'
-          }
+            'User-Agent': 'ident-africa/1.0'
+          },
+          timeout: API_TIMEOUT
         }
       });
 
@@ -287,18 +488,39 @@ Ensure all prices sum up logically in costBreakdown, lodging aligns with duratio
         parsedData = JSON.parse(cleanText);
       }
 
-      return res.json(parsedData);
+      return res.status(200).json(createResponse(true, parsedData));
     } catch (err: any) {
       console.error('Error generating AI Safari itinerary:', err);
-      return res.status(500).json({
-        error: 'Failed to generate custom AI itinerary',
-        details: err.message || String(err)
-      });
+      
+      // Don't expose internal error details in production
+      const errorMessage = NODE_ENV === 'development' 
+        ? err.message || String(err) 
+        : 'Failed to generate AI itinerary. Please try again.';
+        
+      return res.status(500).json(createResponse(false, undefined, 'AI generation failed', errorMessage));
     }
   });
 
+  // Global error handler - must be after all routes
+  app.use((err: Error, _req: Request, res: Response, _next: NextFunction) => {
+    console.error('Unhandled server error:', err);
+    
+    // Don't expose internal error details
+    res.status(500).json(createResponse(
+      false, 
+      undefined, 
+      'Internal server error',
+      NODE_ENV === 'development' ? err.message : 'An unexpected error occurred'
+    ));
+  });
+
+  // 404 handler for unknown routes
+  app.use((_req: Request, res: Response) => {
+    res.status(404).json(createResponse(false, undefined, 'Route not found', 'The requested API endpoint does not exist'));
+  });
+
   // Vite Integration for Dev / Static Serving for Production
-  if (process.env.NODE_ENV !== 'production') {
+  if (NODE_ENV !== 'production') {
     const { createServer: createViteServer } = await import('vite');
     const vite = await createViteServer({
       server: { middlewareMode: true },
@@ -314,8 +536,17 @@ Ensure all prices sum up logically in costBreakdown, lodging aligns with duratio
   }
 
   app.listen(PORT, '0.0.0.0', () => {
-    console.log(`SafariFlow Server listening on http://localhost:${PORT}`);
+    console.log(`═══════════════════════════════════════════════════════════`);
+    console.log(`  Ident Africa Server`);
+    console.log(`═══════════════════════════════════════════════════════════`);
+    console.log(`  Environment: ${NODE_ENV}`);
+    console.log(`  Server:     http://localhost:${PORT}`);
+    console.log(`  Health:     http://localhost:${PORT}/api/health`);
+    console.log(`═══════════════════════════════════════════════════════════`);
   });
 }
 
-startServer();
+startServer().catch((err) => {
+  console.error('Failed to start server:', err);
+  process.exit(1);
+});
