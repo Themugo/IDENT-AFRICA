@@ -9,6 +9,16 @@ import helmet from 'helmet';
 import cors from 'cors';
 import compression from 'compression';
 
+// Database and routes
+import { initDatabase } from './src/db/index.js';
+import destinationsRouter from './src/routes/destinations.js';
+import lodgesRouter from './src/routes/lodges.js';
+import bookingsRouter from './src/routes/bookings.js';
+import usersRouter from './src/routes/users.js';
+import paymentsRouter from './src/routes/payments.js';
+import suppliersRouter from './src/routes/suppliers.js';
+import adminRouter from './src/routes/admin.js';
+
 dotenv.config();
 
 const __filename = fileURLToPath(import.meta.url);
@@ -124,6 +134,18 @@ async function startServer() {
     
     next();
   });
+
+  // Initialize database connection
+  await initDatabase();
+
+  // Register REST API routes
+  app.use('/api/destinations', destinationsRouter);
+  app.use('/api/lodges', lodgesRouter);
+  app.use('/api/bookings', bookingsRouter);
+  app.use('/api/users', usersRouter);
+  app.use('/api/payments', paymentsRouter);
+  app.use('/api/suppliers', suppliersRouter);
+  app.use('/api/admin', adminRouter);
 
   // API Route: Live Exchange Rates
   app.get('/api/exchange-rates', async (_req, res) => {
@@ -632,12 +654,8 @@ Ensure all prices sum up logically in costBreakdown, lodging aligns with duratio
   // =============================================================================
 
   // GET /api/admin/stats - Admin dashboard statistics
-  app.get('/api/admin/stats', (req: Request, res: Response) => {
-    const token = req.headers.authorization?.replace('Bearer ', '');
-    
-    // For demo, allow access without auth
-    // In production, add: if (!token) return res.status(401)...
-    
+  // Note: Uses routes/admin.ts when database is connected
+  app.get('/api/admin/stats', async (req: Request, res: Response) => {
     // Mock admin statistics
     const stats = {
       totalRevenueUSD: 2485000,

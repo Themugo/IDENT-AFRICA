@@ -316,5 +316,215 @@ CREATE INDEX IF NOT EXISTS idx_suppliers_country ON suppliers(country);
 CREATE INDEX IF NOT EXISTS idx_suppliers_status ON suppliers(approval_status);
 
 -- =============================================================================
+-- 11. LODGES TABLE (Hotels & Accommodations)
+-- =============================================================================
+CREATE TABLE IF NOT EXISTS lodges (
+    id VARCHAR(64) PRIMARY KEY,
+    name VARCHAR(255) NOT NULL,
+    tagline VARCHAR(255) NOT NULL,
+    country VARCHAR(64) NOT NULL CHECK (country IN ('Kenya', 'Tanzania', 'Uganda', 'Rwanda')),
+    region VARCHAR(128) NOT NULL,
+    category VARCHAR(64) NOT NULL CHECK (category IN ('Luxury Lodge', 'Tented Camp', 'Boutique Hotel', 'Safari House', 'Treehouse')),
+    image_url TEXT NOT NULL,
+    hero_image_url TEXT,
+    rating NUMERIC(3,2) DEFAULT 4.50 CHECK (rating >= 0 AND rating <= 5.00),
+    reviews_count INT DEFAULT 0 CHECK (reviews_count >= 0),
+    price_per_night_usd INT NOT NULL CHECK (price_per_night_usd >= 0),
+    max_guests INT DEFAULT 4 CHECK (max_guests > 0),
+    bedrooms INT DEFAULT 2 CHECK (bedrooms >= 0),
+    bathrooms INT DEFAULT 2 CHECK (bathrooms >= 0),
+    amenities JSONB DEFAULT '[]'::jsonb,
+    description TEXT NOT NULL,
+    highlights JSONB DEFAULT '[]'::jsonb,
+    coordinates_lat NUMERIC(9,6) CHECK (coordinates_lat BETWEEN -90 AND 90),
+    coordinates_lng NUMERIC(9,6) CHECK (coordinates_lng BETWEEN -180 AND 180),
+    featured BOOLEAN DEFAULT FALSE,
+    is_active BOOLEAN DEFAULT TRUE,
+    supplier_id VARCHAR(64),
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP NOT NULL,
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP NOT NULL
+);
+
+CREATE TRIGGER update_lodges_updated_at
+    BEFORE UPDATE ON lodges
+    FOR EACH ROW
+    EXECUTE FUNCTION update_updated_at_column();
+
+CREATE INDEX IF NOT EXISTS idx_lodges_country ON lodges(country);
+CREATE INDEX IF NOT EXISTS idx_lodges_category ON lodges(category);
+CREATE INDEX IF NOT EXISTS idx_lodges_featured ON lodges(featured);
+CREATE INDEX IF NOT EXISTS idx_lodges_price ON lodges(price_per_night_usd);
+CREATE INDEX IF NOT EXISTS idx_lodges_rating ON lodges(rating DESC);
+
+-- =============================================================================
+-- 12. ITINERARIES TABLE (Safari Packages)
+-- =============================================================================
+CREATE TABLE IF NOT EXISTS itineraries (
+    id VARCHAR(64) PRIMARY KEY,
+    title VARCHAR(255) NOT NULL,
+    tagline VARCHAR(255) NOT NULL,
+    country VARCHAR(64) NOT NULL CHECK (country IN ('Kenya', 'Tanzania', 'Uganda', 'Rwanda')),
+    region VARCHAR(128) NOT NULL,
+    category VARCHAR(64) NOT NULL CHECK (category IN ('Classic Safari', 'Luxury Safari', 'Budget Safari', 'Adventure Safari', 'Honeymoon Safari', 'Family Safari')),
+    duration_days INT NOT NULL CHECK (duration_days > 0),
+    max_group_size INT DEFAULT 8 CHECK (max_group_size > 0),
+    price_per_person_usd INT NOT NULL CHECK (price_per_person_usd >= 0),
+    minimum_age INT DEFAULT 0 CHECK (minimum_age >= 0),
+    image_url TEXT NOT NULL,
+    hero_image_url TEXT,
+    rating NUMERIC(3,2) DEFAULT 4.50 CHECK (rating >= 0 AND rating <= 5.00),
+    reviews_count INT DEFAULT 0 CHECK (reviews_count >= 0),
+    highlights JSONB DEFAULT '[]'::jsonb,
+    included JSONB DEFAULT '[]'::jsonb,
+    excluded JSONB DEFAULT '[]'::jsonb,
+    itinerary_days JSONB DEFAULT '[]'::jsonb,
+    description TEXT NOT NULL,
+    best_season VARCHAR(128) DEFAULT 'Year-round',
+    difficulty VARCHAR(32) DEFAULT 'Easy' CHECK (difficulty IN ('Easy', 'Moderate', 'Challenging')),
+    featured BOOLEAN DEFAULT FALSE,
+    is_active BOOLEAN DEFAULT TRUE,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP NOT NULL,
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP NOT NULL
+);
+
+CREATE TRIGGER update_itineraries_updated_at
+    BEFORE UPDATE ON itineraries
+    FOR EACH ROW
+    EXECUTE FUNCTION update_updated_at_column();
+
+CREATE INDEX IF NOT EXISTS idx_itineraries_country ON itineraries(country);
+CREATE INDEX IF NOT EXISTS idx_itineraries_category ON itineraries(category);
+CREATE INDEX IF NOT EXISTS idx_itineraries_duration ON itineraries(duration_days);
+CREATE INDEX IF NOT EXISTS idx_itineraries_price ON itineraries(price_per_person_usd);
+CREATE INDEX IF NOT EXISTS idx_itineraries_featured ON itineraries(featured);
+
+-- =============================================================================
+-- 13. BOOKING ADDONS TABLE (Optional Extras)
+-- =============================================================================
+CREATE TABLE IF NOT EXISTS booking_addons (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    name VARCHAR(255) NOT NULL,
+    description TEXT,
+    price_usd DECIMAL(10,2) NOT NULL CHECK (price_usd >= 0),
+    price_type VARCHAR(32) DEFAULT 'per_booking' CHECK (price_type IN ('per_booking', 'per_person', 'per_day')),
+    category VARCHAR(64) NOT NULL CHECK (category IN ('Transport', 'Insurance', 'Equipment', 'Experience', 'Meal', 'Accommodation', 'Other')),
+    is_active BOOLEAN DEFAULT TRUE,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP NOT NULL,
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP NOT NULL
+);
+
+CREATE TRIGGER update_booking_addons_updated_at
+    BEFORE UPDATE ON booking_addons
+    FOR EACH ROW
+    EXECUTE FUNCTION update_updated_at_column();
+
+-- =============================================================================
+-- 14. PAYMENT TRANSACTIONS TABLE (Payment Tracking)
+-- =============================================================================
+CREATE TABLE IF NOT EXISTS payment_transactions (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    booking_id UUID REFERENCES bookings(id) ON DELETE SET NULL,
+    transaction_ref VARCHAR(128) UNIQUE NOT NULL,
+    gateway VARCHAR(32) NOT NULL CHECK (gateway IN ('stripe', 'flutterwave', 'mpesa', 'bank_transfer', 'cash')),
+    amount DECIMAL(12,2) NOT NULL CHECK (amount >= 0),
+    currency VARCHAR(3) DEFAULT 'USD',
+    status VARCHAR(32) DEFAULT 'pending' CHECK (status IN ('pending', 'processing', 'completed', 'failed', 'refunded', 'cancelled')),
+    gateway_transaction_id VARCHAR(255),
+    gateway_response JSONB,
+    customer_email VARCHAR(255),
+    customer_phone VARCHAR(64),
+    metadata JSONB DEFAULT '{}'::jsonb,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP NOT NULL,
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP NOT NULL
+);
+
+CREATE TRIGGER update_payment_transactions_updated_at
+    BEFORE UPDATE ON payment_transactions
+    FOR EACH ROW
+    EXECUTE FUNCTION update_updated_at_column();
+
+CREATE INDEX IF NOT EXISTS idx_payment_booking ON payment_transactions(booking_id);
+CREATE INDEX IF NOT EXISTS idx_payment_status ON payment_transactions(status);
+CREATE INDEX IF NOT EXISTS idx_payment_gateway ON payment_transactions(gateway);
+
+-- =============================================================================
+-- 15. BOOKING ADDONS JOIN TABLE
+-- =============================================================================
+CREATE TABLE IF NOT EXISTS booking_selected_addons (
+    booking_id UUID REFERENCES bookings(id) ON DELETE CASCADE,
+    addon_id UUID REFERENCES booking_addons(id) ON DELETE CASCADE,
+    quantity INT DEFAULT 1 CHECK (quantity > 0),
+    price_at_booking DECIMAL(10,2) NOT NULL,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP NOT NULL,
+    PRIMARY KEY (booking_id, addon_id)
+);
+
+-- =============================================================================
+-- 16. AUDIT LOGS TABLE (Security & Compliance)
+-- =============================================================================
+CREATE TABLE IF NOT EXISTS audit_logs (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    user_id VARCHAR(64),
+    action VARCHAR(64) NOT NULL,
+    entity_type VARCHAR(64),
+    entity_id VARCHAR(64),
+    old_value JSONB,
+    new_value JSONB,
+    ip_address INET,
+    user_agent TEXT,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP NOT NULL
+);
+
+CREATE INDEX IF NOT EXISTS idx_audit_user ON audit_logs(user_id);
+CREATE INDEX IF NOT EXISTS idx_audit_action ON audit_logs(action);
+CREATE INDEX IF NOT EXISTS idx_audit_entity ON audit_logs(entity_type, entity_id);
+CREATE INDEX IF NOT EXISTS idx_audit_created ON audit_logs(created_at DESC);
+
+-- =============================================================================
+-- 17. EMAIL VERIFICATIONS TABLE
+-- =============================================================================
+CREATE TABLE IF NOT EXISTS email_verifications (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    token VARCHAR(255) UNIQUE NOT NULL,
+    expires_at TIMESTAMP WITH TIME ZONE NOT NULL,
+    verified_at TIMESTAMP WITH TIME ZONE,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP NOT NULL
+);
+
+CREATE INDEX IF NOT EXISTS idx_email_verif_token ON email_verifications(token);
+CREATE INDEX IF NOT EXISTS idx_email_verif_user ON email_verifications(user_id);
+
+-- =============================================================================
+-- 18. PASSWORD RESET TABLE
+-- =============================================================================
+CREATE TABLE IF NOT EXISTS password_resets (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    token VARCHAR(255) UNIQUE NOT NULL,
+    expires_at TIMESTAMP WITH TIME ZONE NOT NULL,
+    used_at TIMESTAMP WITH TIME ZONE,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP NOT NULL
+);
+
+CREATE INDEX IF NOT EXISTS idx_password_reset_token ON password_resets(token);
+CREATE INDEX IF NOT EXISTS idx_password_reset_user ON password_resets(user_id);
+
+-- =============================================================================
+-- SEED DATA: Initial admin user
+-- =============================================================================
+-- Password: Admin@123 (should be changed immediately)
+-- INSERT INTO users (id, email, password_hash, name, role, email_verified, is_active)
+-- VALUES (
+--     'admin-001',
+--     'admin@identafrica.com',
+--     '$2b$12$LQv3c1yqBWVHxkd0LHAkCOYz6TtxMQJqhN8/X4.4FxcGqhOOT/F5m', -- Admin@123
+--     'System Administrator',
+--     'admin',
+--     true,
+--     true
+-- );
+
+-- =============================================================================
 -- END OF SCHEMA
 -- =============================================================================
