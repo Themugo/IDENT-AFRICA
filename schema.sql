@@ -1121,3 +1121,185 @@ CREATE INDEX idx_redemption_user ON campaign_redemptions(user_id);
 -- =============================================================================
 -- END OF PRICING
 -- =============================================================================
+
+-- =============================================================================
+-- INVENTORY MANAGEMENT
+-- Real-time availability system for accommodations, transport, guides, activities
+-- =============================================================================
+
+-- Inventory item types
+CREATE TYPE inventory_item_type AS ENUM (
+    'room',
+    'seat',
+    'vehicle',
+    'guide',
+    'activity'
+);
+
+-- Inventory status
+CREATE TYPE inventory_status AS ENUM (
+    'available',
+    'reserved',
+    'booked',
+    'blocked'
+);
+
+-- Main inventory table
+CREATE TABLE IF NOT EXISTS inventory (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    
+    -- Inventory identification
+    supplier_id VARCHAR(64) NOT NULL REFERENCES suppliers(id) ON DELETE CASCADE,
+    product_id VARCHAR(128) NOT NULL,
+    product_type inventory_item_type NOT NULL,
+    
+    -- Capacity
+    total_quantity INT NOT NULL CHECK (total_quantity > 0),
+    
+    -- Availability tracking
+    available_quantity INT NOT NULL CHECK (available_quantity >= 0),
+    reserved_quantity INT NOT NULL DEFAULT 0 CHECK (reserved_quantity >= 0),
+    blocked_quantity INT NOT NULL DEFAULT 0 CHECK (blocked_quantity >= 0),
+    
+    -- Date range (NULL means always available)
+    valid_from DATE,
+    valid_to DATE,
+    
+    -- Metadata
+    name VARCHAR(255),
+    description TEXT,
+    unit_type VARCHAR(32) DEFAULT 'unit', -- 'room', 'seat', 'person', 'vehicle', 'session'
+    
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    
+    CONSTRAINT valid_quantity CHECK (available_quantity + reserved_quantity + blocked_quantity <= total_quantity)
+);
+
+CREATE INDEX idx_inventory_supplier ON inventory(supplier_id);
+CREATE INDEX idx_inventory_product ON inventory(product_id);
+CREATE INDEX idx_inventory_type ON inventory(product_type);
+CREATE INDEX idx_inventory_dates ON inventory(valid_from, valid_to);
+
+CREATE TRIGGER update_inventory_updated_at
+    BEFORE UPDATE ON inventory
+    FOR EACH ROW
+    EXECUTE FUNCTION update_updated_at_column();
+
+-- Daily inventory snapshot for booking dates
+CREATE TABLE IF NOT EXISTS inventory_daily (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    inventory_id UUID NOT NULL REFERENCES inventory(id) ON DELETE CASCADE,
+    
+    -- Date
+    date DATE NOT NULL,
+    
+    -- Quantities for specific date
+    total_quantity INT NOT NULL,
+    available_quantity INT NOT NULL CHECK (available_quantity >= 0),
+    reserved_quantity INT NOT NULL DEFAULT 0 CHECK (reserved_quantity >= 0),
+    blocked_quantity INT NOT NULL DEFAULT 0 CHECK (blocked_quantity >= 0),
+    
+    -- Status
+    status inventory_status DEFAULT 'available',
+    
+    -- Price override (optional)
+    price_override DECIMAL(12,2),
+    min_stay INT DEFAULT 1,
+    
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    
+    CONSTRAINT valid_daily_quantity CHECK (available_quantity + reserved_quantity + blocked_quantity <= total_quantity),
+    CONSTRAINT unique_inventory_date UNIQUE (inventory_id, date)
+);
+
+CREATE INDEX idx_inventory_daily_inventory ON inventory_daily(inventory_id);
+CREATE INDEX idx_inventory_daily_date ON inventory_daily(date);
+CREATE INDEX idx_inventory_daily_status ON inventory_daily(status);
+CREATE INDEX idx_inventory_daily_lookup ON inventory_daily(inventory_id, date);
+
+CREATE TRIGGER update_inventory_daily_updated_at
+    BEFORE UPDATE ON inventory_daily
+    FOR EACH ROW
+    EXECUTE FUNCTION update_updated_at_column();
+
+-- Inventory reservations (for booking holds)
+CREATE TABLE IF NOT EXISTS inventory_reservations (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    inventory_id UUID NOT NULL REFERENCES inventory(id) ON DELETE CASCADE,
+    daily_id UUID REFERENCES inventory_daily(id) ON DELETE SET NULL,
+    
+    -- Reservation details
+    booking_id VARCHAR(128),
+    session_id VARCHAR(128), -- For cart holds
+    quantity INT NOT NULL CHECK (quantity > 0),
+    
+    -- Status
+    status VARCHAR(16) DEFAULT 'pending' CHECK (status IN ('pending', 'confirmed', 'cancelled', 'released')),
+    
+    -- Timing
+    reservation_start TIMESTAMP WITH TIME ZONE NOT NULL,
+    reservation_end TIMESTAMP WITH TIME ZONE NOT NULL,
+    
+    -- Hold expiration
+    expires_at TIMESTAMP WITH TIME ZONE,
+    
+    -- Metadata
+    notes TEXT,
+    
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    
+    CONSTRAINT valid_reservation_dates CHECK (reservation_end > reservation_start)
+);
+
+CREATE INDEX idx_reservations_inventory ON inventory_reservations(inventory_id);
+CREATE INDEX idx_reservations_daily ON inventory_reservations(daily_id);
+CREATE INDEX idx_reservations_status ON inventory_reservations(status);
+CREATE INDEX idx_reservations_session ON inventory_reservations(session_id);
+CREATE INDEX idx_reservations_booking ON inventory_reservations(booking_id);
+CREATE INDEX idx_reservations_expiry ON inventory_reservations(expires_at) WHERE status = 'pending';
+
+CREATE TRIGGER update_reservations_updated_at
+    BEFORE UPDATE ON inventory_reservations
+    FOR EACH ROW
+    EXECUTE FUNCTION update_updated_at_column();
+
+-- Inventory blocks (for maintenance, closures)
+CREATE TABLE IF NOT EXISTS inventory_blocks (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    inventory_id UUID NOT NULL REFERENCES inventory(id) ON DELETE CASCADE,
+    
+    -- Block details
+    reason VARCHAR(128),
+    block_type VARCHAR(32) DEFAULT 'maintenance' CHECK (block_type IN ('maintenance', 'closure', 'event', 'other')),
+    
+    -- Date range
+    start_date DATE NOT NULL,
+    end_date DATE NOT NULL,
+    
+    -- Quantity blocked
+    quantity INT NOT NULL DEFAULT 1 CHECK (quantity > 0),
+    
+    -- Status
+    is_active BOOLEAN DEFAULT TRUE,
+    
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    
+    CONSTRAINT valid_block_dates CHECK (end_date >= start_date)
+);
+
+CREATE INDEX idx_blocks_inventory ON inventory_blocks(inventory_id);
+CREATE INDEX idx_blocks_dates ON inventory_blocks(start_date, end_date);
+CREATE INDEX idx_blocks_active ON inventory_blocks(is_active) WHERE is_active = TRUE;
+
+CREATE TRIGGER update_blocks_updated_at
+    BEFORE UPDATE ON inventory_blocks
+    FOR EACH ROW
+    EXECUTE FUNCTION update_updated_at_column();
+
+-- =============================================================================
+-- END OF INVENTORY
+-- =============================================================================
