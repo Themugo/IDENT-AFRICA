@@ -1,0 +1,269 @@
+{
+  "common": {
+    "appName": "IDENT AFRICA",
+    "loading": "Cargando...",
+    "error": "Ocurrió un error",
+    "retry": "Reintentar",
+    "cancel": "Cancelar",
+    "confirm": "Confirmar",
+    "save": "Guardar",
+    "delete": "Eliminar",
+    "edit": "Editar",
+    "view": "Ver",
+    "search": "Buscar",
+    "filter": "Filtrar",
+    "sort": "Ordenar",
+    "next": "Siguiente",
+    "previous": "Anterior",
+    "back": "Atrás",
+    "close": "Cerrar",
+    "submit": "Enviar",
+    "required": "Obligatorio",
+    "optional": "Opcional",
+    "seeAll": "Ver todo",
+    "showMore": "Mostrar más",
+    "showLess": "Mostrar menos"
+  },
+  "nav": {
+    "home": "Inicio",
+    "destinations": "Destinos",
+    "packages": "Paquetes",
+    "experiences": "Experiencias",
+    "about": "Acerca de",
+    "contact": "Contacto",
+    "login": "Iniciar Sesión",
+    "register": "Registrarse",
+    "logout": "Cerrar Sesión",
+    "profile": "Perfil",
+    "bookings": "Reservas",
+    "favorites": "Favoritos",
+    "settings": "Configuración",
+    "help": "Ayuda"
+  },
+  "home": {
+    "hero": {
+      "title": "Descubre las Maravillas de África",
+      "subtitle": "Aventuras safari, experiencias culturales y viajes inolvidables",
+      "searchPlaceholder": "¿A dónde quieres ir?",
+      "cta": "Explorar"
+    },
+    "featured": {
+      "title": "Destinos Destacados",
+      "subtitle": "Explora nuestros destinos africanos más populares"
+    },
+    "popular": {
+      "title": "Paquetes Populares",
+      "subtitle": "Descubre nuestras mejores experiencias safari"
+    },
+    "testimonials": {
+      "title": "Lo que Dicen los Viajeros",
+      "subtitle": "Historias reales de verdaderos aventureros"
+    },
+    "newsletter": {
+      "title": "Mantente Informado",
+      "subtitle": "Recibe ofertas exclusivas e inspiración de viaje",
+      "placeholder": "Ingresa tu email",
+      "cta": "Suscribirse"
+    }
+  },
+  "destinations": {
+    "title": "Destinos",
+    "subtitle": "Explora la belleza de África",
+    "featured": "Destinos Destacados",
+    "all": "Todos los Destinos",
+    "regions": {
+      "east": "África Oriental",
+      "west": "África Occidental",
+      "southern": "África Austral",
+      "north": "África del Norte",
+      "central": "África Central"
+    },
+    "filters": {
+      "region": "Región",
+      "country": "País",
+      "interests": "Intereses",
+      "budget": "Presupuesto",
+      "duration": "Duración",
+      "rating": "Calificación"
+    },
+    "sort": {
+      "popularity": "Más Populares",
+      "rating": "Mejor Calificados",
+      "priceAsc": "Precio: Menor a Mayor",
+      "priceDesc": "Precio: Mayor a Menor"
+    },
+    "details": {
+      "overview": "Resumen",
+      "highlights": "Puntos Destacados",
+      "itinerary": "Itinerario",
+      "includes": "Qué Incluye",
+      "reviews": "Reseñas",
+      "faq": "Preguntas Frecuentes",
+      "bookNow": "Reservar Ahora"
+    }
+  },
+  "packages": {
+    "title": "Paquetes Safari",
+    "subtitle": "Encuentra tu aventura africana perfecta",
+    "types": {
+      "safari": "Safari",
+      "beach": "Playa",
+      "cultural": "Cultural",
+      "adventure": "Aventura",
+      "luxury": "Lujo",
+      "budget": "Económico"
+    },
+    "filters": {
+      "type": "Tipo de Paquete",
+      "duration": "Duración",
+      "priceRange": "Rango de Precio",
+      "accommodation": "Alojamiento",
+      "activities": "Actividades"
+    }
+  },
+  "booking": {
+    "title": "Reserva Tu Aventura",
+    "steps": {
+      "select": "Seleccionar Fechas",
+      "travelers": "Viajeros",
+      "details": "Tus Datos",
+      "payment": "Pago",
+      "confirm": "Confirmación"
+    },
+    "form": {
+      "firstName": "Nombre",
+      "lastName": "Apellido",
+      "email": "Correo Electrónico",
+      "phone": "Teléfono",
+      "nationality": "Nacionalidad",
+      "specialRequests": "Solicitudes Especiales"
+    },
+    "summary": {
+      "title": "Resumen de Reserva",
+      "subtotal": "Subtotal",
+      "taxes": "Impuestos y Tasas",
+      "total": "Total",
+      "deposit": "Depósito Due Hoy"
+    },
+    "status": {
+      "pending": "Pendiente",
+      "confirmed": "Confirmado",
+      "cancelled": "Cancelado",
+      "completed": "Completado"
+    },
+    "confirmation": {
+      "title": "¡Reserva Confirmada!",
+      "message": "Tu aventura te espera. Revisa tu email para los detalles.",
+      "bookingRef": "Referencia de Reserva"
+    }
+  },
+  "auth": {
+    "login": {
+      "title": "Bienvenido de Nuevo",
+      "subtitle": "Inicia sesión para continuar",
+      "email": "Correo",
+      "password": "Contraseña",
+      "rememberMe": "Recordarme",
+      "forgotPassword": "¿Olvidaste tu contraseña?",
+      "submit": "Iniciar Sesión",
+      "noAccount": "¿No tienes cuenta?",
+      "signUp": "Regístrate"
+    },
+    "register": {
+      "title": "Crear Cuenta",
+      "subtitle": "Comienza tu aventura africana",
+      "name": "Nombre Completo",
+      "email": "Correo",
+      "password": "Contraseña",
+      "confirmPassword": "Confirmar Contraseña",
+      "submit": "Crear Cuenta",
+      "hasAccount": "¿Ya tienes cuenta?",
+      "signIn": "Iniciar sesión"
+    },
+    "reset": {
+      "title": "Restablecer Contraseña",
+      "subtitle": "Te enviaremos un enlace para restablecer",
+      "submit": "Enviar Enlace",
+      "backToLogin": "Volver al inicio de sesión"
+    }
+  },
+  "profile": {
+    "title": "Mi Perfil",
+    "tabs": {
+      "personal": "Información Personal",
+      "preferences": "Preferencias",
+      "travelHistory": "Historial de Viajes",
+      "documents": "Documentos"
+    },
+    "form": {
+      "name": "Nombre Completo",
+      "email": "Correo",
+      "phone": "Teléfono",
+      "nationality": "Nacionalidad",
+      "dateOfBirth": "Fecha de Nacimiento",
+      "passportNumber": "Número de Pasaporte",
+      "passportExpiry": "Vencimiento del Pasaporte"
+    },
+    "preferences": {
+      "title": "Preferencias de Viaje",
+      "interests": "Intereses",
+      "travelStyle": "Estilo de Viaje",
+      "budget": "Rango de Presupuesto",
+      "accommodation": "Preferencia de Alojamiento"
+    }
+  },
+  "ai": {
+    "title": "Asistente de Viaje IA",
+    "subtitle": "Tu conserje personal para aventuras africanas",
+    "placeholder": "Pregúntame cualquier cosa sobre viajar a África...",
+    "examples": {
+      "title": "Intenta preguntar:",
+      "items": [
+        "¿Cuál es el mejor momento para visitar Kenia?",
+        "Safari por menos de $2000 para familias",
+        "Escapada romántica a Zanzibar"
+      ]
+    },
+    "suggestions": [
+      "¿Cuáles son los mejores destinos safari?",
+      "Cuéntame sobre Maasai Mara",
+      "Planifica un itinerario de 7 días en Tanzania"
+    ]
+  },
+  "footer": {
+    "tagline": "Tu puerta a experiencias africanas auténticas",
+    "quickLinks": "Enlaces Rápidos",
+    "support": "Soporte",
+    "legal": "Legal",
+    "contact": {
+      "title": "Contáctanos",
+      "email": "info@identafrica.com",
+      "phone": "+254 700 123 456"
+    },
+    "social": {
+      "title": "Síguenos"
+    },
+    "copyright": "© 2025 IDENT AFRICA. Todos los derechos reservados."
+  },
+  "errors": {
+    "required": "Este campo es obligatorio",
+    "invalidEmail": "Por favor ingresa un email válido",
+    "invalidPhone": "Por favor ingresa un número de teléfono válido",
+    "passwordMismatch": "Las contraseñas no coinciden",
+    "passwordTooShort": "La contraseña debe tener al menos 8 caracteres",
+    "serverError": "Algo salió mal. Por favor intenta de nuevo.",
+    "networkError": "Error de red. Por favor verifica tu conexión.",
+    "notFound": "Página no encontrada",
+    "unauthorized": "Por favor inicia sesión para continuar"
+  },
+  "accessibility": {
+    "skipToMain": "Ir al contenido principal",
+    "openMenu": "Abrir menú",
+    "closeMenu": "Cerrar menú",
+    "selectLanguage": "Seleccionar idioma",
+    "previousMonth": "Mes anterior",
+    "nextMonth": "Mes siguiente",
+    "openDropdown": "Abrir menú desplegable",
+    "closeDropdown": "Cerrar menú desplegable"
+  }
+}

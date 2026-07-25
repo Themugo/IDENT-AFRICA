@@ -1,0 +1,269 @@
+{
+  "common": {
+    "appName": "IDENT AFRICA",
+    "loading": "Laden...",
+    "error": "Ein Fehler ist aufgetreten",
+    "retry": "Erneut versuchen",
+    "cancel": "Abbrechen",
+    "confirm": "Bestätigen",
+    "save": "Speichern",
+    "delete": "Löschen",
+    "edit": "Bearbeiten",
+    "view": "Ansehen",
+    "search": "Suchen",
+    "filter": "Filtern",
+    "sort": "Sortieren",
+    "next": "Weiter",
+    "previous": "Zurück",
+    "back": "Zurück",
+    "close": "Schließen",
+    "submit": "Absenden",
+    "required": "Erforderlich",
+    "optional": "Optional",
+    "seeAll": "Alle anzeigen",
+    "showMore": "Mehr anzeigen",
+    "showLess": "Weniger anzeigen"
+  },
+  "nav": {
+    "home": "Startseite",
+    "destinations": "Reiseziele",
+    "packages": "Pakete",
+    "experiences": "Erlebnisse",
+    "about": "Über uns",
+    "contact": "Kontakt",
+    "login": "Anmelden",
+    "register": "Registrieren",
+    "logout": "Abmelden",
+    "profile": "Profil",
+    "bookings": "Buchungen",
+    "favorites": "Favoriten",
+    "settings": "Einstellungen",
+    "help": "Hilfe"
+  },
+  "home": {
+    "hero": {
+      "title": "Entdecken Sie Afrikas Wunder",
+      "subtitle": "Safari-Abenteuer, Kulturelle Erlebnisse und Unvergessliche Reisen",
+      "searchPlaceholder": "Wohin möchten Sie gehen?",
+      "cta": "Jetzt Entdecken"
+    },
+    "featured": {
+      "title": "Empfohlene Reiseziele",
+      "subtitle": "Entdecken Sie unsere beliebtesten afrikanischen Reiseziele"
+    },
+    "popular": {
+      "title": "Beliebte Pakete",
+      "subtitle": "Entdecken Sie unsere meistverkauften Safari-Erlebnisse"
+    },
+    "testimonials": {
+      "title": "Was Reisende sagen",
+      "subtitle": "Echte Geschichten von echten Abenteurern"
+    },
+    "newsletter": {
+      "title": "Bleiben Sie Informiert",
+      "subtitle": "Erhalten Sie exklusive Angebote und Reiseinspiration",
+      "placeholder": "E-Mail eingeben",
+      "cta": "Abonnieren"
+    }
+  },
+  "destinations": {
+    "title": "Reiseziele",
+    "subtitle": "Entdecken Sie die Schönheit Afrikas",
+    "featured": "Empfohlene Reiseziele",
+    "all": "Alle Reiseziele",
+    "regions": {
+      "east": "Ostafrika",
+      "west": "Westafrika",
+      "southern": "Südliches Afrika",
+      "north": "Nordafrika",
+      "central": "Zentralafrika"
+    },
+    "filters": {
+      "region": "Region",
+      "country": "Land",
+      "interests": "Interessen",
+      "budget": "Budget",
+      "duration": "Dauer",
+      "rating": "Bewertung"
+    },
+    "sort": {
+      "popularity": "Am Beliebtesten",
+      "rating": "Am Besten Bewertet",
+      "priceAsc": "Preis: Aufsteigend",
+      "priceDesc": "Preis: Absteigend"
+    },
+    "details": {
+      "overview": "Übersicht",
+      "highlights": "Highlights",
+      "itinerary": "Reiseroute",
+      "includes": "Was Enthalten Ist",
+      "reviews": "Bewertungen",
+      "faq": "FAQ",
+      "bookNow": "Jetzt Buchen"
+    }
+  },
+  "packages": {
+    "title": "Safari-Pakete",
+    "subtitle": "Finden Sie Ihr perfektes afrikanisches Abenteuer",
+    "types": {
+      "safari": "Safari",
+      "beach": "Strand",
+      "cultural": "Kulturell",
+      "adventure": "Abenteuer",
+      "luxury": "Luxus",
+      "budget": "Budget"
+    },
+    "filters": {
+      "type": "Pakettyp",
+      "duration": "Dauer",
+      "priceRange": "Preisspanne",
+      "accommodation": "Unterkunft",
+      "activities": "Aktivitäten"
+    }
+  },
+  "booking": {
+    "title": "Buchen Sie Ihr Abenteuer",
+    "steps": {
+      "select": "Datum Auswählen",
+      "travelers": "Reisende",
+      "details": "Ihre Daten",
+      "payment": "Zahlung",
+      "confirm": "Bestätigung"
+    },
+    "form": {
+      "firstName": "Vorname",
+      "lastName": "Nachname",
+      "email": "E-Mail-Adresse",
+      "phone": "Telefonnummer",
+      "nationality": "Nationalität",
+      "specialRequests": "Besondere Wünsche"
+    },
+    "summary": {
+      "title": "Buchungsübersicht",
+      "subtotal": "Zwischensumme",
+      "taxes": "Steuern & Gebühren",
+      "total": "Gesamt",
+      "deposit": "Anzahlung Heute"
+    },
+    "status": {
+      "pending": "Ausstehend",
+      "confirmed": "Bestätigt",
+      "cancelled": "Storniert",
+      "completed": "Abgeschlossen"
+    },
+    "confirmation": {
+      "title": "Buchung Bestätigt!",
+      "message": "Ihr Abenteuer wartet. Prüfen Sie Ihre E-Mail für Details.",
+      "bookingRef": "Buchungsreferenz"
+    }
+  },
+  "auth": {
+    "login": {
+      "title": "Willkommen Zurück",
+      "subtitle": "Melden Sie sich an, um fortzufahren",
+      "email": "E-Mail",
+      "password": "Passwort",
+      "rememberMe": "Angemeldet bleiben",
+      "forgotPassword": "Passwort vergessen?",
+      "submit": "Anmelden",
+      "noAccount": "Kein Konto?",
+      "signUp": "Registrieren"
+    },
+    "register": {
+      "title": "Konto Erstellen",
+      "subtitle": "Beginnen Sie Ihr afrikanisches Abenteuer",
+      "name": "Vollständiger Name",
+      "email": "E-Mail",
+      "password": "Passwort",
+      "confirmPassword": "Passwort Bestätigen",
+      "submit": "Konto Erstellen",
+      "hasAccount": "Bereits ein Konto?",
+      "signIn": "Anmelden"
+    },
+    "reset": {
+      "title": "Passwort Zurücksetzen",
+      "subtitle": "Wir senden Ihnen einen Link zum Zurücksetzen",
+      "submit": "Link Senden",
+      "backToLogin": "Zurück zur Anmeldung"
+    }
+  },
+  "profile": {
+    "title": "Mein Profil",
+    "tabs": {
+      "personal": "Persönliche Daten",
+      "preferences": "Präferenzen",
+      "travelHistory": "Reisehistorie",
+      "documents": "Dokumente"
+    },
+    "form": {
+      "name": "Vollständiger Name",
+      "email": "E-Mail",
+      "phone": "Telefon",
+      "nationality": "Nationalität",
+      "dateOfBirth": "Geburtsdatum",
+      "passportNumber": "Reisepassnummer",
+      "passportExpiry": "Reisepass-Ablauf"
+    },
+    "preferences": {
+      "title": "Reisepräferenzen",
+      "interests": "Interessen",
+      "travelStyle": "Reisestil",
+      "budget": "Budgetbereich",
+      "accommodation": "Unterkunftspräferenz"
+    }
+  },
+  "ai": {
+    "title": "KI-Reiseassistent",
+    "subtitle": "Ihr persönlicher Concierge für afrikanische Abenteuer",
+    "placeholder": "Fragen Sie mich alles über Reisen in Afrika...",
+    "examples": {
+      "title": "Versuchen Sie zu fragen:",
+      "items": [
+        "Beste Zeit für Kenia?",
+        "Safari unter 2000€ für Familien",
+        "Romantischer Ausflug nach Sansibar"
+      ]
+    },
+    "suggestions": [
+      "Was sind die besten Safari-Ziele?",
+      "Erzählen Sie mir vom Maasai Mara",
+      "Planen Sie eine 7-tägige Tansania-Reise"
+    ]
+  },
+  "footer": {
+    "tagline": "Ihr Tor zu authentischen afrikanischen Erlebnissen",
+    "quickLinks": "Schnelllinks",
+    "support": "Support",
+    "legal": "Rechtliches",
+    "contact": {
+      "title": "Kontaktieren Sie Uns",
+      "email": "info@identafrica.com",
+      "phone": "+254 700 123 456"
+    },
+    "social": {
+      "title": "Folgen Sie Uns"
+    },
+    "copyright": "© 2025 IDENT AFRICA. Alle Rechte vorbehalten."
+  },
+  "errors": {
+    "required": "Dieses Feld ist erforderlich",
+    "invalidEmail": "Bitte geben Sie eine gültige E-Mail ein",
+    "invalidPhone": "Bitte geben Sie eine gültige Telefonnummer ein",
+    "passwordMismatch": "Passwörter stimmen nicht überein",
+    "passwordTooShort": "Passwort muss mindestens 8 Zeichen haben",
+    "serverError": "Etwas ist schiefgelaufen. Bitte versuchen Sie es erneut.",
+    "networkError": "Netzwerkfehler. Bitte überprüfen Sie Ihre Verbindung.",
+    "notFound": "Seite nicht gefunden",
+    "unauthorized": "Bitte melden Sie sich an, um fortzufahren"
+  },
+  "accessibility": {
+    "skipToMain": "Zum Hauptinhalt springen",
+    "openMenu": "Menü öffnen",
+    "closeMenu": "Menü schließen",
+    "selectLanguage": "Sprache auswählen",
+    "previousMonth": "Vorheriger Monat",
+    "nextMonth": "Nächster Monat",
+    "openDropdown": "Dropdown öffnen",
+    "closeDropdown": "Dropdown schließen"
+  }
+}

@@ -1,0 +1,269 @@
+{
+  "common": {
+    "appName": "IDENT AFRICA",
+    "loading": "Inapakia...",
+    "error": "Hitilafu imetokea",
+    "retry": "Jaribu tena",
+    "cancel": "Ghairi",
+    "confirm": "Thibitisha",
+    "save": "Hifadhi",
+    "delete": "Futa",
+    "edit": "Hariri",
+    "view": "Tazama",
+    "search": "Tafuta",
+    "filter": "Chuja",
+    "sort": "Panga",
+    "next": "Ifuatayo",
+    "previous": "Iliyotangulia",
+    "back": "Rudi Nyuma",
+    "close": "Funga",
+    "submit": "Wasilisha",
+    "required": "Inahitajika",
+    "optional": "Hiari",
+    "seeAll": "Tazama zote",
+    "showMore": "Onyesha zaidi",
+    "showLess": "Onyesha kidogo"
+  },
+  "nav": {
+    "home": "Nyumbani",
+    "destinations": "Mahali",
+    "packages": "Vifurushi",
+    "experiences": "Matukio",
+    "about": "Kuhusu",
+    "contact": "Wasiliana",
+    "login": "Ingia",
+    "register": "Jisajili",
+    "logout": "Toka",
+    "profile": "Wasiliana",
+    "bookings": "Maabid",
+    "favorites": "Unapendeleo",
+    "settings": "Mipangilio",
+    "help": "Msaada"
+  },
+  "home": {
+    "hero": {
+      "title": "Gundua Ajabu za Afrika",
+      "subtitle": "Safari, uzoefu wa kitamaduni, na masafari yasiyosahaulika",
+      "searchPlaceholder": "Unataka kwenda wapi?",
+      "cta": "Chunguza Sasa"
+    },
+    "featured": {
+      "title": "Mahali Panapokubalika",
+      "subtitle": "Gundua sehemu zinazopendwa zaidi za Afrika"
+    },
+    "popular": {
+      "title": "Vifurushi Vinavyopendwa",
+      "subtitle": "Gundua uchambuzi wetu bora wa safari"
+    },
+    "testimonials": {
+      "title": "Wasema Nini Wanderers",
+      "subtitle": "Hadithi za kweli kutoka kwa wapita safari wa kweli"
+    },
+    "newsletter": {
+      "title": "Baki Unajulishwa",
+      "subtitle": "Pata ofa maalum na msukumo wa kusafiri",
+      "placeholder": "Weka barua pepe yako",
+      "cta": "Jisajili"
+    }
+  },
+  "destinations": {
+    "title": "Mahali",
+    "subtitle": "Gundua ubele wa Afrika",
+    "featured": "Mahali Panapokubalika",
+    "all": "Mahali Yote",
+    "regions": {
+      "east": "Afrika ya Mashariki",
+      "west": "Afrika ya Magharibi",
+      "southern": "Afrika ya Kusini",
+      "north": "Afrika ya Kaskazini",
+      "central": "Afrika ya Kati"
+    },
+    "filters": {
+      "region": "Eneo",
+      "country": "Nchi",
+      "interests": "Mapendekezo",
+      "budget": "Bajeti",
+      "duration": "Muda",
+      "rating": "Maoni"
+    },
+    "sort": {
+      "popularity": "Inayopendwa Zaidi",
+      "rating": "Iliyokadiriwa Juu",
+      "priceAsc": "Bei: Chache kwa Wingi",
+      "priceDesc": "Bei: Wingi kwa Chache"
+    },
+    "details": {
+      "overview": "Muhtasari",
+      "highlights": "M娘 мом",
+      "itinerary": "Ratiba",
+      "includes": "Kini Kinajumuishwa",
+      "reviews": "Maoni",
+      "faq": "Maswali Yanayoulizwa Mara kwa Mara",
+      "bookNow": "Agiza Sasa"
+    }
+  },
+  "packages": {
+    "title": "Vifurushi vya Safari",
+    "subtitle": "Pata adventure yako ya kipekee ya Kiafrika",
+    "types": {
+      "safari": "Safari",
+      "beach": "Bomani",
+      "cultural": "Kitamaduni",
+      "adventure": "Adventure",
+      "luxury": "Luxe",
+      "budget": "Bajeti"
+    },
+    "filters": {
+      "type": "Aina ya Kifurushi",
+      "duration": "Muda",
+      "priceRange": "Kiwango cha Bei",
+      "accommodation": "Malazi",
+      "activities": "Shughuli"
+    }
+  },
+  "booking": {
+    "title": "Agiza Adventure Yako",
+    "steps": {
+      "select": "Chagua Tarehe",
+      "travelers": "Wasafiri",
+      "details": "Maelezo Yako",
+      "payment": "Malipo",
+      "confirm": "Uthibitisho"
+    },
+    "form": {
+      "firstName": "Jina la Kwanza",
+      "lastName": "Jina la Mwisho",
+      "email": "Barua Pepe",
+      "phone": "Nambari ya Simu",
+      "nationality": "Uraia",
+      "specialRequests": "Maombi Maalum"
+    },
+    "summary": {
+      "title": "Muhtasari wa Agizo",
+      "subtotal": "Jumla",
+      "taxes": "Taxes & Fees",
+      "total": "Jumla",
+      "deposit": "Malipo yaleo"
+    },
+    "status": {
+      "pending": "Inasubiri",
+      "confirmed": "Imethibitishwa",
+      "cancelled": "Imefutwa",
+      "completed": "Imemalizika"
+    },
+    "confirmation": {
+      "title": "Agizo Imethibitishwa!",
+      "message": "Adventure yako inasubiri. Angalia barua pepe yako kwa maelezo.",
+      "bookingRef": "Kumbukumbu ya Agizo"
+    }
+  },
+  "auth": {
+    "login": {
+      "title": "Karibu Tena",
+      "subtitle": "Ingia kuendelea na safari yako",
+      "email": "Barua Pepe",
+      "password": "Nenosiri",
+      "rememberMe": "Nikumbuke",
+      "forgotPassword": "Umesahau nenosiri?",
+      "submit": "Ingia",
+      "noAccount": "Huna akaunti?",
+      "signUp": "Jisajili"
+    },
+    "register": {
+      "title": "Unda Akaunti",
+      "subtitle": "Anza adventure yako ya Kiafrika",
+      "name": "Jina Kamili",
+      "email": "Barua Pepe",
+      "password": "Nenosiri",
+      "confirmPassword": "Thibitisha Nenosiri",
+      "submit": "Unda Akaunti",
+      "hasAccount": "Tayari una akaunti?",
+      "signIn": "Ingia"
+    },
+    "reset": {
+      "title": "Weka Upya Nenosiri",
+      "subtitle": "Tutakutumia kiungo cha kuweka upya",
+      "submit": "Tuma Kiungo",
+      "backToLogin": "Rudi kwa kuingia"
+    }
+  },
+  "profile": {
+    "title": "Wasifu Wangu",
+    "tabs": {
+      "personal": "Maelezo ya Kibinafsi",
+      "preferences": "Mapendekezo",
+      "travelHistory": "Historia ya Kusafiri",
+      "documents": "Hati"
+    },
+    "form": {
+      "name": "Jina Kamili",
+      "email": "Barua Pepe",
+      "phone": "Simu",
+      "nationality": "Uraia",
+      "dateOfBirth": "Tarehe ya Kuzaliwa",
+      "passportNumber": "Nambari ya Pasipoti",
+      "passportExpiry": "Mwisho wa Pasipoti"
+    },
+    "preferences": {
+      "title": "Mapendekezo ya Kusafiri",
+      "interests": "Mapendekezo",
+      "travelStyle": "Staili ya Kusafiri",
+      "budget": "Kiwango cha Bajeti",
+      "accommodation": "Mapendekezo ya Malazi"
+    }
+  },
+  "ai": {
+    "title": "Msaidizi wa AI wa Kusafiri",
+    "subtitle": "Concierge yako ya kibinafsi kwa ajili ya Adventures za Kiafrika",
+    "placeholder": "Niulize chochote kuhusu kusafiri Afrika...",
+    "examples": {
+      "title": "Jaribu kuuliza:",
+      "items": [
+        "Wakati bora wa kutembelea Kenya?",
+        "Safari chini ya $2000 kwa familia",
+        "Escapade ya kimapenzi Zanzibar"
+      ]
+    },
+    "suggestions": [
+      "Sehemu bora za safari ni zipi?",
+      "Niambie kuhusu Maasai Mara",
+      "Panga ratiba ya siku 7 Tanzania"
+    ]
+  },
+  "footer": {
+    "tagline": "Lango lako la uzoefu wa kweli wa Kiafrika",
+    "quickLinks": "Viungo vya Haraka",
+    "support": "Msaada",
+    "legal": "Kisheria",
+    "contact": {
+      "title": "Wasiliana Nasi",
+      "email": "info@identafrica.com",
+      "phone": "+254 700 123 456"
+    },
+    "social": {
+      "title": "Tufuatushe"
+    },
+    "copyright": "© 2025 IDENT AFRICA. Haki zote zimehifadhiwa."
+  },
+  "errors": {
+    "required": "Sehemu hii inahitajika",
+    "invalidEmail": "Tafadhali ingiza barua pepe inayotumika",
+    "invalidPhone": "Tafadhali ingiza nambari ya simu inayotumika",
+    "passwordMismatch": "Manenosiri hayalingani",
+    "passwordTooShort": "Nenosiri lazima liwe na angalau herufi 8",
+    "serverError": "Kuna kitu kilichokosa. Tafadhali jaribu tena.",
+    "networkError": "Hitilafu ya mtandao. Tafadhali angalia muunganisho wako.",
+    "notFound": "Ukurasa haujapatikana",
+    "unauthorized": "Tafadhali ingia kuendelea"
+  },
+  "accessibility": {
+    "skipToMain": "Ruka kwa maudhui ya kuu",
+    "openMenu": "Fungua menyu",
+    "closeMenu": "Funga menyu",
+    "selectLanguage": "Chagua lugha",
+    "previousMonth": "Mwezi uliotangulia",
+    "nextMonth": "Mwezi ujao",
+    "openDropdown": "Fungua dropdown",
+    "closeDropdown": "Funga dropdown"
+  }
+}

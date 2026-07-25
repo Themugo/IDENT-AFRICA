@@ -1,0 +1,269 @@
+{
+  "common": {
+    "appName": "IDENT AFRICA",
+    "loading": "Loading...",
+    "error": "An error occurred",
+    "retry": "Retry",
+    "cancel": "Cancel",
+    "confirm": "Confirm",
+    "save": "Save",
+    "delete": "Delete",
+    "edit": "Edit",
+    "view": "View",
+    "search": "Search",
+    "filter": "Filter",
+    "sort": "Sort",
+    "next": "Next",
+    "previous": "Previous",
+    "back": "Back",
+    "close": "Close",
+    "submit": "Submit",
+    "required": "Required",
+    "optional": "Optional",
+    "seeAll": "See all",
+    "showMore": "Show more",
+    "showLess": "Show less"
+  },
+  "nav": {
+    "home": "Home",
+    "destinations": "Destinations",
+    "packages": "Packages",
+    "experiences": "Experiences",
+    "about": "About",
+    "contact": "Contact",
+    "login": "Login",
+    "register": "Register",
+    "logout": "Logout",
+    "profile": "Profile",
+    "bookings": "Bookings",
+    "favorites": "Favorites",
+    "settings": "Settings",
+    "help": "Help"
+  },
+  "home": {
+    "hero": {
+      "title": "Discover Africa's Wonders",
+      "subtitle": "Safari adventures, cultural experiences, and unforgettable journeys",
+      "searchPlaceholder": "Where do you want to go?",
+      "cta": "Explore Now"
+    },
+    "featured": {
+      "title": "Featured Destinations",
+      "subtitle": "Explore our most popular African destinations"
+    },
+    "popular": {
+      "title": "Popular Packages",
+      "subtitle": "Discover our best-selling safari experiences"
+    },
+    "testimonials": {
+      "title": "What Travelers Say",
+      "subtitle": "Real stories from real adventurers"
+    },
+    "newsletter": {
+      "title": "Stay Updated",
+      "subtitle": "Get exclusive offers and travel inspiration",
+      "placeholder": "Enter your email",
+      "cta": "Subscribe"
+    }
+  },
+  "destinations": {
+    "title": "Destinations",
+    "subtitle": "Explore the beauty of Africa",
+    "featured": "Featured Destinations",
+    "all": "All Destinations",
+    "regions": {
+      "east": "East Africa",
+      "west": "West Africa",
+      "southern": "Southern Africa",
+      "north": "North Africa",
+      "central": "Central Africa"
+    },
+    "filters": {
+      "region": "Region",
+      "country": "Country",
+      "interests": "Interests",
+      "budget": "Budget",
+      "duration": "Duration",
+      "rating": "Rating"
+    },
+    "sort": {
+      "popularity": "Most Popular",
+      "rating": "Highest Rated",
+      "priceAsc": "Price: Low to High",
+      "priceDesc": "Price: High to Low"
+    },
+    "details": {
+      "overview": "Overview",
+      "highlights": "Highlights",
+      "itinerary": "Itinerary",
+      "includes": "What's Included",
+      "reviews": "Reviews",
+      "faq": "FAQ",
+      "bookNow": "Book Now"
+    }
+  },
+  "packages": {
+    "title": "Safari Packages",
+    "subtitle": "Find your perfect African adventure",
+    "types": {
+      "safari": "Safari",
+      "beach": "Beach",
+      "cultural": "Cultural",
+      "adventure": "Adventure",
+      "luxury": "Luxury",
+      "budget": "Budget"
+    },
+    "filters": {
+      "type": "Package Type",
+      "duration": "Duration",
+      "priceRange": "Price Range",
+      "accommodation": "Accommodation",
+      "activities": "Activities"
+    }
+  },
+  "booking": {
+    "title": "Book Your Adventure",
+    "steps": {
+      "select": "Select Dates",
+      "travelers": "Travelers",
+      "details": "Your Details",
+      "payment": "Payment",
+      "confirm": "Confirmation"
+    },
+    "form": {
+      "firstName": "First Name",
+      "lastName": "Last Name",
+      "email": "Email Address",
+      "phone": "Phone Number",
+      "nationality": "Nationality",
+      "specialRequests": "Special Requests"
+    },
+    "summary": {
+      "title": "Booking Summary",
+      "subtotal": "Subtotal",
+      "taxes": "Taxes & Fees",
+      "total": "Total",
+      "deposit": "Deposit Due Today"
+    },
+    "status": {
+      "pending": "Pending",
+      "confirmed": "Confirmed",
+      "cancelled": "Cancelled",
+      "completed": "Completed"
+    },
+    "confirmation": {
+      "title": "Booking Confirmed!",
+      "message": "Your adventure awaits. Check your email for details.",
+      "bookingRef": "Booking Reference"
+    }
+  },
+  "auth": {
+    "login": {
+      "title": "Welcome Back",
+      "subtitle": "Sign in to continue your journey",
+      "email": "Email",
+      "password": "Password",
+      "rememberMe": "Remember me",
+      "forgotPassword": "Forgot password?",
+      "submit": "Sign In",
+      "noAccount": "Don't have an account?",
+      "signUp": "Sign up"
+    },
+    "register": {
+      "title": "Create Account",
+      "subtitle": "Start your African adventure",
+      "name": "Full Name",
+      "email": "Email",
+      "password": "Password",
+      "confirmPassword": "Confirm Password",
+      "submit": "Create Account",
+      "hasAccount": "Already have an account?",
+      "signIn": "Sign in"
+    },
+    "reset": {
+      "title": "Reset Password",
+      "subtitle": "We'll send you a reset link",
+      "submit": "Send Reset Link",
+      "backToLogin": "Back to login"
+    }
+  },
+  "profile": {
+    "title": "My Profile",
+    "tabs": {
+      "personal": "Personal Info",
+      "preferences": "Preferences",
+      "travelHistory": "Travel History",
+      "documents": "Documents"
+    },
+    "form": {
+      "name": "Full Name",
+      "email": "Email",
+      "phone": "Phone",
+      "nationality": "Nationality",
+      "dateOfBirth": "Date of Birth",
+      "passportNumber": "Passport Number",
+      "passportExpiry": "Passport Expiry"
+    },
+    "preferences": {
+      "title": "Travel Preferences",
+      "interests": "Interests",
+      "travelStyle": "Travel Style",
+      "budget": "Budget Range",
+      "accommodation": "Accommodation Preference"
+    }
+  },
+  "ai": {
+    "title": "AI Travel Assistant",
+    "subtitle": "Your personal concierge for African adventures",
+    "placeholder": "Ask me anything about traveling in Africa...",
+    "examples": {
+      "title": "Try asking:",
+      "items": [
+        "Best time to visit Kenya?",
+        "Safari under $2000 for families",
+        "Romantic getaway in Zanzibar"
+      ]
+    },
+    "suggestions": [
+      "What are the best safari destinations?",
+      "Tell me about Maasai Mara",
+      "Plan a 7-day Tanzania itinerary"
+    ]
+  },
+  "footer": {
+    "tagline": "Your gateway to authentic African experiences",
+    "quickLinks": "Quick Links",
+    "support": "Support",
+    "legal": "Legal",
+    "contact": {
+      "title": "Contact Us",
+      "email": "info@identafrica.com",
+      "phone": "+254 700 123 456"
+    },
+    "social": {
+      "title": "Follow Us"
+    },
+    "copyright": "© 2025 IDENT AFRICA. All rights reserved."
+  },
+  "errors": {
+    "required": "This field is required",
+    "invalidEmail": "Please enter a valid email",
+    "invalidPhone": "Please enter a valid phone number",
+    "passwordMismatch": "Passwords do not match",
+    "passwordTooShort": "Password must be at least 8 characters",
+    "serverError": "Something went wrong. Please try again.",
+    "networkError": "Network error. Please check your connection.",
+    "notFound": "Page not found",
+    "unauthorized": "Please sign in to continue"
+  },
+  "accessibility": {
+    "skipToMain": "Skip to main content",
+    "openMenu": "Open menu",
+    "closeMenu": "Close menu",
+    "selectLanguage": "Select language",
+    "previousMonth": "Previous month",
+    "nextMonth": "Next month",
+    "openDropdown": "Open dropdown",
+    "closeDropdown": "Close dropdown"
+  }
+}

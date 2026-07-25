@@ -1,0 +1,269 @@
+{
+  "common": {
+    "appName": "IDENT AFRICA",
+    "loading": "加载中...",
+    "error": "发生错误",
+    "retry": "重试",
+    "cancel": "取消",
+    "confirm": "确认",
+    "save": "保存",
+    "delete": "删除",
+    "edit": "编辑",
+    "view": "查看",
+    "search": "搜索",
+    "filter": "筛选",
+    "sort": "排序",
+    "next": "下一步",
+    "previous": "上一步",
+    "back": "返回",
+    "close": "关闭",
+    "submit": "提交",
+    "required": "必填",
+    "optional": "选填",
+    "seeAll": "查看全部",
+    "showMore": "显示更多",
+    "showLess": "收起"
+  },
+  "nav": {
+    "home": "首页",
+    "destinations": "目的地",
+    "packages": "套餐",
+    "experiences": "体验",
+    "about": "关于我们",
+    "contact": "联系我们",
+    "login": "登录",
+    "register": "注册",
+    "logout": "退出",
+    "profile": "个人资料",
+    "bookings": "订单",
+    "favorites": "收藏",
+    "settings": "设置",
+    "help": "帮助"
+  },
+  "home": {
+    "hero": {
+      "title": "探索非洲的奇迹",
+      "subtitle": "Safari冒险、文化体验和难忘旅程",
+      "searchPlaceholder": "您想去哪里？",
+      "cta": "立即探索"
+    },
+    "featured": {
+      "title": "精选目的地",
+      "subtitle": "探索我们最受欢迎的非洲目的地"
+    },
+    "popular": {
+      "title": "热门套餐",
+      "subtitle": "发现我们最畅销的Safari体验"
+    },
+    "testimonials": {
+      "title": "游客说",
+      "subtitle": "来自真正冒险者的真实故事"
+    },
+    "newsletter": {
+      "title": "保持联系",
+      "subtitle": "获取独家优惠和旅行灵感",
+      "placeholder": "输入您的邮箱",
+      "cta": "订阅"
+    }
+  },
+  "destinations": {
+    "title": "目的地",
+    "subtitle": "探索非洲之美",
+    "featured": "精选目的地",
+    "all": "所有目的地",
+    "regions": {
+      "east": "东非",
+      "west": "西非",
+      "southern": "南部非洲",
+      "north": "北非",
+      "central": "中非"
+    },
+    "filters": {
+      "region": "地区",
+      "country": "国家",
+      "interests": "兴趣",
+      "budget": "预算",
+      "duration": "时长",
+      "rating": "评分"
+    },
+    "sort": {
+      "popularity": "最受欢迎",
+      "rating": "评分最高",
+      "priceAsc": "价格：从低到高",
+      "priceDesc": "价格：从高到低"
+    },
+    "details": {
+      "overview": "概览",
+      "highlights": "亮点",
+      "itinerary": "行程",
+      "includes": "包含内容",
+      "reviews": "评价",
+      "faq": "常见问题",
+      "bookNow": "立即预订"
+    }
+  },
+  "packages": {
+    "title": "Safari套餐",
+    "subtitle": "找到您完美的非洲冒险",
+    "types": {
+      "safari": "Safari",
+      "beach": "海滩",
+      "cultural": "文化",
+      "adventure": "冒险",
+      "luxury": "豪华",
+      "budget": "经济"
+    },
+    "filters": {
+      "type": "套餐类型",
+      "duration": "时长",
+      "priceRange": "价格范围",
+      "accommodation": "住宿",
+      "activities": "活动"
+    }
+  },
+  "booking": {
+    "title": "预订您的冒险",
+    "steps": {
+      "select": "选择日期",
+      "travelers": "旅客",
+      "details": "您的信息",
+      "payment": "支付",
+      "confirm": "确认"
+    },
+    "form": {
+      "firstName": "名",
+      "lastName": "姓",
+      "email": "电子邮箱",
+      "phone": "电话号码",
+      "nationality": "国籍",
+      "specialRequests": "特殊要求"
+    },
+    "summary": {
+      "title": "订单摘要",
+      "subtotal": "小计",
+      "taxes": "税费",
+      "total": "总计",
+      "deposit": "今日应付定金"
+    },
+    "status": {
+      "pending": "待处理",
+      "confirmed": "已确认",
+      "cancelled": "已取消",
+      "completed": "已完成"
+    },
+    "confirmation": {
+      "title": "预订已确认！",
+      "message": "您的冒险在等待您。查看您的邮箱获取详情。",
+      "bookingRef": "订单编号"
+    }
+  },
+  "auth": {
+    "login": {
+      "title": "欢迎回来",
+      "subtitle": "登录以继续",
+      "email": "邮箱",
+      "password": "密码",
+      "rememberMe": "记住我",
+      "forgotPassword": "忘记密码？",
+      "submit": "登录",
+      "noAccount": "没有账户？",
+      "signUp": "注册"
+    },
+    "register": {
+      "title": "创建账户",
+      "subtitle": "开始您的非洲冒险",
+      "name": "全名",
+      "email": "邮箱",
+      "password": "密码",
+      "confirmPassword": "确认密码",
+      "submit": "创建账户",
+      "hasAccount": "已有账户？",
+      "signIn": "登录"
+    },
+    "reset": {
+      "title": "重置密码",
+      "subtitle": "我们将发送重置链接给您",
+      "submit": "发送链接",
+      "backToLogin": "返回登录"
+    }
+  },
+  "profile": {
+    "title": "我的资料",
+    "tabs": {
+      "personal": "个人信息",
+      "preferences": "偏好设置",
+      "travelHistory": "旅行历史",
+      "documents": "文件"
+    },
+    "form": {
+      "name": "全名",
+      "email": "邮箱",
+      "phone": "电话",
+      "nationality": "国籍",
+      "dateOfBirth": "出生日期",
+      "passportNumber": "护照号码",
+      "passportExpiry": "护照有效期"
+    },
+    "preferences": {
+      "title": "旅行偏好",
+      "interests": "兴趣",
+      "travelStyle": "旅行风格",
+      "budget": "预算范围",
+      "accommodation": "住宿偏好"
+    }
+  },
+  "ai": {
+    "title": "AI旅行助手",
+    "subtitle": "您的非洲冒险专属礼宾",
+    "placeholder": "问我任何关于非洲旅行的问题...",
+    "examples": {
+      "title": "试试这样问：",
+      "items": [
+        "去肯尼亚的最佳时间是什么时候？",
+        "2000美元以内的家庭Safari",
+        "桑给巴尔浪漫之旅"
+      ]
+    },
+    "suggestions": [
+      "最好的Safari目的地是哪些？",
+      "告诉我关于马赛马拉",
+      "规划7天的坦桑尼亚行程"
+    ]
+  },
+  "footer": {
+    "tagline": "通往真实非洲体验的门户",
+    "quickLinks": "快速链接",
+    "support": "支持",
+    "legal": "法律",
+    "contact": {
+      "title": "联系我们",
+      "email": "info@identafrica.com",
+      "phone": "+254 700 123 456"
+    },
+    "social": {
+      "title": "关注我们"
+    },
+    "copyright": "© 2025 IDENT AFRICA. 保留所有权利。"
+  },
+  "errors": {
+    "required": "此字段为必填项",
+    "invalidEmail": "请输入有效的邮箱地址",
+    "invalidPhone": "请输入有效的电话号码",
+    "passwordMismatch": "密码不匹配",
+    "passwordTooShort": "密码必须至少8个字符",
+    "serverError": "出了点问题，请重试。",
+    "networkError": "网络错误，请检查您的连接。",
+    "notFound": "页面未找到",
+    "unauthorized": "请登录以继续"
+  },
+  "accessibility": {
+    "skipToMain": "跳转到主要内容",
+    "openMenu": "打开菜单",
+    "closeMenu": "关闭菜单",
+    "selectLanguage": "选择语言",
+    "previousMonth": "上个月",
+    "nextMonth": "下个月",
+    "openDropdown": "打开下拉菜单",
+    "closeDropdown": "关闭下拉菜单"
+  }
+}
