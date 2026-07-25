@@ -1303,3 +1303,225 @@ CREATE TRIGGER update_blocks_updated_at
 -- =============================================================================
 -- END OF INVENTORY
 -- =============================================================================
+
+-- =============================================================================
+-- NOTIFICATIONS & MESSAGING SYSTEM
+-- Multi-channel notifications: Email, SMS, WhatsApp, Push
+-- =============================================================================
+
+-- Notification channels
+CREATE TYPE notification_channel AS ENUM (
+    'email',
+    'sms',
+    'whatsapp',
+    'push'
+);
+
+-- Notification types
+CREATE TYPE notification_type AS ENUM (
+    'booking_confirmation',
+    'booking_cancellation',
+    'payment_received',
+    'payment_failed',
+    'booking_reminder',
+    'supplier_message',
+    'admin_message',
+    'promotion',
+    'system_alert',
+    'review_request'
+);
+
+-- Notification status
+CREATE TYPE notification_status AS ENUM (
+    'pending',
+    'sent',
+    'delivered',
+    'failed',
+    'read'
+);
+
+-- Notification templates
+CREATE TABLE IF NOT EXISTS notification_templates (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    
+    -- Template identification
+    name VARCHAR(128) NOT NULL UNIQUE,
+    type notification_type NOT NULL,
+    channel notification_channel NOT NULL,
+    
+    -- Template content
+    subject VARCHAR(255),
+    template_body TEXT NOT NULL,
+    template_variables JSONB DEFAULT '[]',
+    
+    -- Settings
+    is_active BOOLEAN DEFAULT TRUE,
+    priority INTEGER DEFAULT 0,
+    
+    -- Metadata
+    created_by VARCHAR(64),
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE INDEX idx_templates_type ON notification_templates(type);
+CREATE INDEX idx_templates_channel ON notification_templates(channel);
+CREATE INDEX idx_templates_active ON notification_templates(is_active);
+
+CREATE TRIGGER update_notification_templates_updated_at
+    BEFORE UPDATE ON notification_templates
+    FOR EACH ROW
+    EXECUTE FUNCTION update_updated_at_column();
+
+-- Notifications log
+CREATE TABLE IF NOT EXISTS notifications (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    
+    -- Recipient
+    recipient_id VARCHAR(64) NOT NULL,
+    recipient_type VARCHAR(32) NOT NULL, -- 'customer', 'supplier', 'admin'
+    recipient_email VARCHAR(255),
+    recipient_phone VARCHAR(32),
+    
+    -- Notification details
+    type notification_type NOT NULL,
+    channel notification_channel NOT NULL,
+    subject VARCHAR(255),
+    message TEXT NOT NULL,
+    
+    -- Data
+    metadata JSONB DEFAULT '{}',
+    related_entity_type VARCHAR(64),
+    related_entity_id VARCHAR(128),
+    
+    -- Status tracking
+    status notification_status DEFAULT 'pending',
+    status_details TEXT,
+    
+    -- Delivery tracking
+    sent_at TIMESTAMP WITH TIME ZONE,
+    delivered_at TIMESTAMP WITH TIME ZONE,
+    read_at TIMESTAMP WITH TIME ZONE,
+    
+    -- Retry tracking
+    retry_count INT DEFAULT 0,
+    max_retries INT DEFAULT 3,
+    
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE INDEX idx_notifications_recipient ON notifications(recipient_id, recipient_type);
+CREATE INDEX idx_notifications_type ON notifications(type);
+CREATE INDEX idx_notifications_status ON notifications(status);
+CREATE INDEX idx_notifications_created ON notifications(created_at DESC);
+CREATE INDEX idx_notifications_related ON notifications(related_entity_type, related_entity_id);
+
+CREATE TRIGGER update_notifications_updated_at
+    BEFORE UPDATE ON notifications
+    FOR EACH ROW
+    EXECUTE FUNCTION update_updated_at_column();
+
+-- Messages (for conversations between users, suppliers, admins)
+CREATE TABLE IF NOT EXISTS messages (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    
+    -- Conversation
+    conversation_id VARCHAR(64) NOT NULL,
+    
+    -- Sender
+    sender_id VARCHAR(64) NOT NULL,
+    sender_type VARCHAR(32) NOT NULL, -- 'customer', 'supplier', 'admin'
+    sender_name VARCHAR(255),
+    
+    -- Recipient
+    recipient_id VARCHAR(64),
+    recipient_type VARCHAR(32),
+    
+    -- Message content
+    content TEXT NOT NULL,
+    message_type VARCHAR(32) DEFAULT 'text', -- 'text', 'system', 'booking_update'
+    
+    -- Attachments
+    attachments JSONB DEFAULT '[]',
+    
+    -- Status
+    is_read BOOLEAN DEFAULT FALSE,
+    read_at TIMESTAMP WITH TIME ZONE,
+    
+    -- Metadata
+    metadata JSONB DEFAULT '{}',
+    related_entity_type VARCHAR(64),
+    related_entity_id VARCHAR(128),
+    
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE INDEX idx_messages_conversation ON messages(conversation_id);
+CREATE INDEX idx_messages_sender ON messages(sender_id);
+CREATE INDEX idx_messages_recipient ON messages(recipient_id);
+CREATE INDEX idx_messages_unread ON messages(recipient_id, is_read) WHERE is_read = FALSE;
+CREATE INDEX idx_messages_created ON messages(created_at DESC);
+
+CREATE TRIGGER update_messages_updated_at
+    BEFORE UPDATE ON messages
+    FOR EACH ROW
+    EXECUTE FUNCTION update_updated_at_column();
+
+-- Push notification tokens
+CREATE TABLE IF NOT EXISTS push_tokens (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    
+    -- User
+    user_id VARCHAR(64) NOT NULL,
+    user_type VARCHAR(32) NOT NULL, -- 'customer', 'supplier', 'admin'
+    
+    -- Device info
+    token VARCHAR(512) NOT NULL,
+    device_type VARCHAR(32), -- 'ios', 'android', 'web'
+    device_name VARCHAR(128),
+    
+    -- Status
+    is_active BOOLEAN DEFAULT TRUE,
+    last_used_at TIMESTAMP WITH TIME ZONE,
+    
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    
+    CONSTRAINT unique_user_token UNIQUE (user_id, token)
+);
+
+CREATE INDEX idx_push_tokens_user ON push_tokens(user_id, user_type);
+CREATE INDEX idx_push_tokens_active ON push_tokens(is_active) WHERE is_active = TRUE;
+
+CREATE TRIGGER update_push_tokens_updated_at
+    BEFORE UPDATE ON push_tokens
+    FOR EACH ROW
+    EXECUTE FUNCTION update_updated_at_column();
+
+-- Email subscriptions (for marketing)
+CREATE TABLE IF NOT EXISTS email_subscriptions (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    
+    -- Contact
+    email VARCHAR(255) NOT NULL UNIQUE,
+    
+    -- Preferences
+    subscribed BOOLEAN DEFAULT TRUE,
+    subscribed_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    unsubscribed_at TIMESTAMP WITH TIME ZONE,
+    
+    -- Preferences
+    preferences JSONB DEFAULT '{"promotions": true, "newsletter": true, "booking_updates": true}',
+    
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE INDEX idx_subscriptions_email ON email_subscriptions(email);
+CREATE INDEX idx_subscriptions_active ON email_subscriptions(subscribed) WHERE subscribed = TRUE;
+
+-- =============================================================================
+-- END OF NOTIFICATIONS
+-- =============================================================================

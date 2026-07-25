@@ -4,6 +4,13 @@
  * Real-time notifications for suppliers and admins.
  */
 
+// Types
+export * from './types';
+
+// Service
+export { notificationService } from './service';
+
+// Legacy store
 export type NotificationType = 
   | 'new_booking'
   | 'booking_cancelled'
