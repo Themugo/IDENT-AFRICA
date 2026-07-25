@@ -684,3 +684,100 @@ CREATE INDEX IF NOT EXISTS idx_cms_partner_featured ON cms_partners(is_featured)
 -- =============================================================================
 -- END OF CMS TABLES
 -- =============================================================================
+
+-- =============================================================================
+-- PAGE SECTIONS: Block-Based Page Builder
+-- =============================================================================
+
+-- =============================================================================
+-- 27. PAGE SECTIONS TABLE
+-- =============================================================================
+CREATE TABLE IF NOT EXISTS page_sections (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    page VARCHAR(50) NOT NULL CHECK (page IN ('homepage', 'destinations', 'accommodation', 'experiences', 'packages', 'about', 'contact')),
+    section_type VARCHAR(50) NOT NULL CHECK (section_type IN ('hero', 'destination', 'experience', 'hotel', 'package', 'gallery', 'testimonial', 'partner', 'cta')),
+    content_json JSONB NOT NULL DEFAULT '{}',
+    settings_json JSONB NOT NULL DEFAULT '{"visible": true}',
+    display_order INTEGER NOT NULL DEFAULT 0,
+    visible BOOLEAN NOT NULL DEFAULT true,
+    created_by VARCHAR(255) NOT NULL DEFAULT 'system',
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP NOT NULL,
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP NOT NULL,
+    
+    -- Ensure unique ordering per page
+    CONSTRAINT unique_page_order UNIQUE (page, display_order)
+);
+
+-- Indexes for page_sections
+CREATE INDEX IF NOT EXISTS idx_page_sections_page ON page_sections(page);
+CREATE INDEX IF NOT EXISTS idx_page_sections_type ON page_sections(section_type);
+CREATE INDEX IF NOT EXISTS idx_page_sections_visible ON page_sections(visible);
+CREATE INDEX IF NOT EXISTS idx_page_sections_order ON page_sections(page, display_order);
+
+-- =============================================================================
+-- PAGE SECTIONS AUDIT LOG
+-- =============================================================================
+CREATE TABLE IF NOT EXISTS page_sections_audit (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    section_id UUID NOT NULL REFERENCES page_sections(id) ON DELETE CASCADE,
+    action VARCHAR(20) NOT NULL CHECK (action IN ('create', 'update', 'delete', 'reorder', 'visibility')),
+    old_content JSONB,
+    new_content JSONB,
+    changed_by VARCHAR(255) NOT NULL,
+    changed_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP NOT NULL
+);
+
+CREATE INDEX IF NOT EXISTS idx_page_audit_section ON page_sections_audit(section_id);
+CREATE INDEX IF NOT EXISTS idx_page_audit_action ON page_sections_audit(action);
+CREATE INDEX IF NOT EXISTS idx_page_audit_time ON page_sections_audit(changed_at DESC);
+
+-- =============================================================================
+-- FUNCTION: Auto-update updated_at
+-- =============================================================================
+CREATE OR REPLACE FUNCTION update_page_section_timestamp()
+RETURNS TRIGGER AS $$
+BEGIN
+    NEW.updated_at = CURRENT_TIMESTAMP;
+    RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+CREATE TRIGGER trg_page_section_updated
+    BEFORE UPDATE ON page_sections
+    FOR EACH ROW
+    EXECUTE FUNCTION update_page_section_timestamp();
+
+-- =============================================================================
+-- SEED: Default homepage blocks
+-- =============================================================================
+INSERT INTO page_sections (page, section_type, content_json, settings_json, display_order, visible, created_by)
+VALUES 
+    ('homepage', 'hero', 
+     '{"title": "East Africa''s Finest Safari Expeditions", "subtitle": "Experience the wild heart of Africa with curated luxury expeditions across Kenya, Tanzania, Uganda & Rwanda", "ctaText": "Start Your Journey", "ctaLink": "/destinations", "backgroundImage": "", "overlayOpacity": 0.4, "alignment": "center", "minHeight": "full"}',
+     '{"visible": true, "containerWidth": "full", "paddingTop": "none", "paddingBottom": "none"}',
+     1, true, 'system'),
+    ('homepage', 'destination',
+     '{"title": "Featured Destinations", "subtitle": "Discover our most sought-after wildlife destinations", "layout": "grid", "columns": 3, "destinationIds": [], "showFilters": true, "limit": 6}',
+     '{"visible": true, "containerWidth": "wide", "paddingTop": "lg", "paddingBottom": "lg"}',
+     2, true, 'system'),
+    ('homepage', 'experience',
+     '{"title": "Unforgettable Experiences", "subtitle": "From mountain gorilla encounters to great migration spectacles", "layout": "grid", "columns": 3, "showViewAll": true, "viewAllLink": "/experiences"}',
+     '{"visible": true, "containerWidth": "wide", "paddingTop": "lg", "paddingBottom": "lg", "backgroundColor": "#292524"}',
+     3, true, 'system'),
+    ('homepage', 'package',
+     '{"title": "Curated Safari Packages", "subtitle": "Expertly designed expeditions for every type of traveler", "layout": "grid", "columns": 3, "showViewAll": true}',
+     '{"visible": true, "containerWidth": "wide", "paddingTop": "lg", "paddingBottom": "lg"}',
+     4, true, 'system'),
+    ('homepage', 'testimonial',
+     '{"title": "Traveler Stories", "subtitle": "Hear from those who''ve experienced the magic of East Africa", "layout": "slider", "showRating": true, "showAvatar": true, "autoPlay": true}',
+     '{"visible": true, "containerWidth": "wide", "paddingTop": "lg", "paddingBottom": "lg", "backgroundColor": "#1C1917"}',
+     5, true, 'system'),
+    ('homepage', 'cta',
+     '{"title": "Ready for Your Safari?", "subtitle": "Let us create your perfect African adventure", "buttonText": "Get Started", "buttonLink": "/contact", "buttonStyle": "primary", "alignment": "center"}',
+     '{"visible": true, "containerWidth": "narrow", "paddingTop": "xl", "paddingBottom": "xl", "backgroundColor": "#F59E0B"}',
+     6, true, 'system')
+ON CONFLICT DO NOTHING;
+
+-- =============================================================================
+-- END OF PAGE SECTIONS
+-- =============================================================================
