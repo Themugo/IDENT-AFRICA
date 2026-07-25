@@ -6,6 +6,43 @@ Welcome to the IDENT AFRICA Supplier Marketplace. This guide helps suppliers man
 
 ---
 
+## Registration
+
+### How to Register
+
+1. Visit the IDENT Africa Become a Partner page
+2. Complete the multi-step registration form:
+   - **Step 1**: Company Information (name, type, description)
+   - **Step 2**: Location (address, city, country)
+   - **Step 3**: Contact Information (email, phone, website)
+   - **Step 4**: Business Documents (registration number, upload documents)
+   - **Step 5**: Payment Information (banking details for payouts)
+   - **Step 6**: Create Account (your login credentials)
+
+3. Submit your application
+4. Wait for verification (2-3 business days)
+5. Receive approval email
+
+### Supplier Types
+
+| Type | Description |
+|------|-------------|
+| Lodge | Safari lodges and camps |
+| Hotel | Hotels and resorts |
+| Safari Operator | Tour operators |
+| Tour Guide | Individual guides |
+| Transport | Safari vehicles, transfers |
+| Activity Provider | Balloon safaris, activities |
+
+### Required Documents
+
+- Business registration certificate
+- Operating license
+- Insurance certificate
+- Tax identification number
+
+---
+
 ## Getting Started
 
 ### Accessing the Supplier Portal
@@ -202,27 +239,55 @@ IDENT AFRICA charges a platform fee:
 - Standard: 15%
 - Rates may vary by supplier
 
+The commission is calculated with full breakdown:
+- Platform Fee: 70% of commission
+- Processing Fee: 30% of commission (Stripe fees)
+
+### Supported Currencies
+
+You can receive payouts in:
+- USD (US Dollar) - Default
+- EUR (Euro)
+- GBP (British Pound)
+- KES (Kenyan Shilling)
+- UGX (Ugandan Shilling)
+- TZS (Tanzanian Shilling)
+
+Automatic currency conversion is applied based on current exchange rates.
+
 ### Getting Paid
 
 1. Bookings are processed through the platform
 2. Payments are held until booking completion
 3. Payouts are released after trip completion
-4. Funds transfer to your bank account
+4. Funds transfer to your bank account via Stripe Connect
 
 ### Payment Schedule
 
 - **Net 30**: Standard payout terms
 - Payouts processed on the 1st and 15th
+- Automatic payout requests available
 
 ### Viewing Earnings
 
 1. Go to **Overview** tab
 2. See total revenue
 3. Check monthly breakdown
+4. View pending payouts
+5. Download payout statements
 
 ---
 
 ## Notifications
+
+Real-time notifications keep you updated on:
+- New bookings
+- Booking cancellations
+- Payment receipts
+- Customer reviews
+- Payout processed
+
+Enable notifications in your browser to receive instant alerts.
 
 ### Notification Types
 
