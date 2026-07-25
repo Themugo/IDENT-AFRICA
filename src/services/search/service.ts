@@ -425,7 +425,7 @@ class SearchService {
   /**
    * Save search to history
    */
-  private saveSearchHistory(userId: string, query: string, filters: SearchFilters, resultCount: number): void {
+  async saveSearchHistory(userId: string, query: string, filters: SearchFilters, resultCount: number): Promise<void> {
     const history = searchHistory.get(userId) || [];
     
     const entry: SearchHistoryEntry = {
@@ -449,7 +449,7 @@ class SearchService {
   /**
    * Update popular searches
    */
-  private updatePopularSearches(query: string): void {
+  async updatePopularSearches(query: string): Promise<void> {
     const existing = popularSearches.find(p => 
       p.query.toLowerCase() === query.toLowerCase()
     );
