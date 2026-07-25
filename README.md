@@ -6,6 +6,8 @@
 
 **Luxury East Africa Expeditions & Sanctuaries**
 
+> **Version 1.0.0** | [Changelog](CHANGELOG.md) | [Security](SECURITY.md) | [Deployment](DEPLOYMENT.md)
+
 A premium travel ecosystem platform for booking African safari experiences, featuring AI-powered itinerary planning, multi-gateway payment processing (Stripe, Flutterwave, M-Pesa), JWT authentication, and a comprehensive supplier management portal.
 
 ## 🦁 Features

@@ -3,6 +3,24 @@
   "private": true,
   "version": "1.0.0",
   "description": "Ident Africa - Luxury East Africa Expeditions & Sanctuaries",
+  "author": "Ident Africa Team",
+  "license": "UNLICENSED",
+  "keywords": [
+    "safari",
+    "africa",
+    "travel",
+    "kenya",
+    "tanzania",
+    "uganda",
+    "rwanda",
+    "luxury",
+    "expedition",
+    "wildlife"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/Themugo/IDENT-AFRICA.git"
+  },
   "type": "module",
   "scripts": {
     "dev": "tsx server.ts",
