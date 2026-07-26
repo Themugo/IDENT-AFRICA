@@ -2120,3 +2120,371 @@ INSERT INTO document_templates (name, document_type, description, template_conte
 -- =============================================================================
 -- END OF DOCUMENT MANAGEMENT
 -- =============================================================================
+
+-- =============================================================================
+-- LOYALTY PROGRAM SYSTEM
+-- Customer rewards and membership management
+-- =============================================================================
+
+-- Membership levels
+CREATE TYPE membership_tier AS ENUM (
+    'bronze',
+    'silver',
+    'gold',
+    'platinum',
+    'diamond'
+);
+
+-- Points transaction types
+CREATE TYPE points_transaction_type AS ENUM (
+    'booking_earn',
+    'review_earn',
+    'referral_earn',
+    'promotion_earn',
+    'signup_bonus',
+    'redemption',
+    'expired',
+    'adjustment'
+);
+
+-- Loyalty program status
+CREATE TYPE loyalty_status AS ENUM (
+    'active',
+    'suspended',
+    'expired',
+    'cancelled'
+);
+
+-- Customer loyalty profiles
+CREATE TABLE IF NOT EXISTS loyalty_profiles (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    
+    -- Customer reference
+    customer_id VARCHAR(64) NOT NULL UNIQUE,
+    customer_email VARCHAR(255),
+    customer_name VARCHAR(255),
+    
+    -- Membership info
+    membership_tier membership_tier DEFAULT 'bronze',
+    tier_achieved_at TIMESTAMP WITH TIME ZONE,
+    
+    -- Points
+    current_points INT DEFAULT 0,
+    lifetime_points INT DEFAULT 0,
+    points_to_next_tier INT,
+    
+    -- Spending
+    total_spending NUMERIC(12, 2) DEFAULT 0,
+    total_bookings INT DEFAULT 0,
+    
+    -- Status
+    status loyalty_status DEFAULT 'active',
+    enrolled_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    last_activity_at TIMESTAMP WITH TIME ZONE,
+    
+    -- Benefits
+    benefits JSONB DEFAULT '[]',
+    
+    -- Preferences
+    preferences JSONB DEFAULT '{"notifications": true, "exclusive_offers": true}',
+    
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE INDEX idx_loyalty_customer ON loyalty_profiles(customer_id);
+CREATE INDEX idx_loyalty_tier ON loyalty_profiles(membership_tier);
+CREATE INDEX idx_loyalty_status ON loyalty_profiles(status);
+CREATE INDEX idx_loyalty_points ON loyalty_profiles(current_points DESC);
+
+CREATE TRIGGER update_loyalty_profiles_updated_at
+    BEFORE UPDATE ON loyalty_profiles
+    FOR EACH ROW
+    EXECUTE FUNCTION update_updated_at_column();
+
+-- Membership levels configuration
+CREATE TABLE IF NOT EXISTS membership_levels (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    
+    -- Level info
+    tier membership_tier NOT NULL UNIQUE,
+    name VARCHAR(64) NOT NULL,
+    description TEXT,
+    
+    -- Thresholds
+    min_lifetime_points INT DEFAULT 0,
+    min_total_spending NUMERIC(12, 2) DEFAULT 0,
+    min_bookings INT DEFAULT 0,
+    
+    -- Benefits
+    points_multiplier NUMERIC(3, 2) DEFAULT 1.0, -- e.g., 1.5 = 50% bonus
+    discount_percentage NUMERIC(5, 2) DEFAULT 0,
+    free_upgrades BOOLEAN DEFAULT FALSE,
+    priority_booking BOOLEAN DEFAULT FALSE,
+    exclusive_access BOOLEAN DEFAULT FALSE,
+    dedicated_support BOOLEAN DEFAULT FALSE,
+    
+    -- Benefits list (JSON for flexibility)
+    benefits JSONB DEFAULT '[]',
+    
+    -- Visual
+    color VARCHAR(7) DEFAULT '#C89A4B', -- Hex color for UI
+    icon VARCHAR(64),
+    
+    is_active BOOLEAN DEFAULT TRUE,
+    sort_order INT DEFAULT 0,
+    
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Insert default membership levels
+INSERT INTO membership_levels (tier, name, description, min_lifetime_points, min_total_spending, min_bookings, points_multiplier, discount_percentage, color, sort_order) VALUES
+('bronze', 'Bronze Member', 'Welcome to IDENT AFRICA Rewards!', 0, 0, 0, 1.0, 0, '#CD7F32', 1),
+('silver', 'Silver Member', 'Enjoy 10% bonus points on all bookings', 1000, 500, 3, 1.1, 2, '#C0C0C0', 2),
+('gold', 'Gold Member', 'Get 20% bonus points and 5% discount', 5000, 2500, 10, 1.2, 5, '#FFD700', 3),
+('platinum', 'Platinum Member', 'Premium benefits with 30% bonus points', 15000, 7500, 25, 1.3, 8, '#E5E4E2', 4),
+('diamond', 'Diamond Member', 'VIP treatment with exclusive experiences', 50000, 25000, 50, 1.5, 12, '#B9F2FF', 5)
+ON CONFLICT (tier) DO NOTHING;
+
+-- Points transactions
+CREATE TABLE IF NOT EXISTS points_transactions (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    
+    -- References
+    loyalty_profile_id UUID NOT NULL REFERENCES loyalty_profiles(id) ON DELETE CASCADE,
+    customer_id VARCHAR(64) NOT NULL,
+    
+    -- Transaction details
+    transaction_type points_transaction_type NOT NULL,
+    points INT NOT NULL, -- Positive for earn, negative for redeem
+    balance_after INT NOT NULL, -- Points balance after this transaction
+    
+    -- Source reference
+    booking_id VARCHAR(128),
+    review_id VARCHAR(128),
+    referral_id VARCHAR(128),
+    promotion_id VARCHAR(128),
+    
+    -- Description
+    description TEXT,
+    details JSONB DEFAULT '{}',
+    
+    -- Expiry
+    points_expire_at TIMESTAMP WITH TIME ZONE,
+    
+    -- Status
+    status VARCHAR(32) DEFAULT 'completed', -- 'pending', 'completed', 'cancelled', 'expired'
+    
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE INDEX idx_transactions_profile ON points_transactions(loyalty_profile_id);
+CREATE INDEX idx_transactions_customer ON points_transactions(customer_id);
+CREATE INDEX idx_transactions_type ON points_transactions(transaction_type);
+CREATE INDEX idx_transactions_booking ON points_transactions(booking_id);
+CREATE INDEX idx_transactions_created ON points_transactions(created_at DESC);
+CREATE INDEX idx_transactions_expiry ON points_transactions(points_expire_at) WHERE status = 'completed' AND points > 0;
+
+-- Customer reviews for loyalty points
+CREATE TABLE IF NOT EXISTS review_rewards (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    
+    -- Review reference
+    review_id VARCHAR(128) NOT NULL UNIQUE,
+    booking_id VARCHAR(128) NOT NULL,
+    customer_id VARCHAR(64) NOT NULL,
+    
+    -- Review details
+    rating INT CHECK (rating >= 1 AND rating <= 5),
+    review_text TEXT,
+    
+    -- Points awarded
+    points_awarded INT DEFAULT 0,
+    points_transaction_id UUID REFERENCES points_transactions(id),
+    
+    -- Bonus for excellent reviews
+    bonus_eligible BOOLEAN DEFAULT FALSE,
+    bonus_points INT DEFAULT 0,
+    
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE INDEX idx_review_rewards_customer ON review_rewards(customer_id);
+CREATE INDEX idx_review_rewards_booking ON review_rewards(booking_id);
+
+-- Referral tracking
+CREATE TABLE IF NOT EXISTS referrals (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    
+    -- Referrer (existing customer)
+    referrer_id VARCHAR(64) NOT NULL REFERENCES loyalty_profiles(id) ON DELETE CASCADE,
+    referrer_email VARCHAR(255),
+    referrer_name VARCHAR(255),
+    
+    -- Referral code
+    referral_code VARCHAR(32) UNIQUE NOT NULL,
+    referral_link VARCHAR(512),
+    
+    -- Referred customer
+    referred_id VARCHAR(64),
+    referred_email VARCHAR(255),
+    referred_name VARCHAR(255),
+    
+    -- Status
+    status VARCHAR(32) DEFAULT 'pending', -- 'pending', 'registered', 'booked', 'completed', 'expired'
+    
+    -- Points
+    referrer_points_awarded INT DEFAULT 0,
+    referred_points_awarded INT DEFAULT 0,
+    
+    -- References
+    signup_transaction_id UUID REFERENCES points_transactions(id),
+    booking_transaction_id UUID REFERENCES points_transactions(id),
+    
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    completed_at TIMESTAMP WITH TIME ZONE
+);
+
+CREATE INDEX idx_referrals_referrer ON referrals(referrer_id);
+CREATE INDEX idx_referrals_code ON referrals(referral_code);
+CREATE INDEX idx_referrals_status ON referrals(status);
+
+-- Promotions and bonus point campaigns
+CREATE TABLE IF NOT EXISTS loyalty_promotions (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    
+    -- Promotion info
+    name VARCHAR(128) NOT NULL,
+    description TEXT,
+    code VARCHAR(32) UNIQUE,
+    
+    -- Type
+    promotion_type VARCHAR(32) NOT NULL, -- 'bonus_points', 'multiplier', 'double_points', 'tier_bonus'
+    
+    -- Value
+    bonus_points INT DEFAULT 0,
+    points_multiplier NUMERIC(3, 2) DEFAULT 1.0,
+    discount_percentage NUMERIC(5, 2) DEFAULT 0,
+    
+    -- Conditions
+    min_booking_value NUMERIC(12, 2) DEFAULT 0,
+    applicable_tiers membership_tier[], -- Which tiers can use this
+    applicable_destinations JSONB DEFAULT '[]',
+    
+    -- Validity
+    starts_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    ends_at TIMESTAMP WITH TIME ZONE,
+    max_uses INT,
+    current_uses INT DEFAULT 0,
+    
+    -- Status
+    is_active BOOLEAN DEFAULT TRUE,
+    
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE INDEX idx_promotions_code ON loyalty_promotions(code);
+CREATE INDEX idx_promotions_active ON loyalty_promotions(is_active) WHERE is_active = TRUE;
+
+CREATE TRIGGER update_promotions_updated_at
+    BEFORE UPDATE ON loyalty_promotions
+    FOR EACH ROW
+    EXECUTE FUNCTION update_updated_at_column();
+
+-- Points redemption rewards catalog
+CREATE TABLE IF NOT EXISTS redemption_rewards (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    
+    -- Reward info
+    name VARCHAR(128) NOT NULL,
+    description TEXT,
+    category VARCHAR(64), -- 'discount', 'experience', 'upgrade', 'merchandise'
+    
+    -- Points cost
+    points_cost INT NOT NULL,
+    
+    -- Value
+    value_amount NUMERIC(12, 2), -- Monetary value if applicable
+    value_type VARCHAR(32), -- 'fixed', 'percentage', 'experience'
+    
+    -- Requirements
+    min_tier membership_tier,
+    requires_booking BOOLEAN DEFAULT FALSE,
+    
+    -- Availability
+    quantity INT, -- NULL = unlimited
+    redeemed_count INT DEFAULT 0,
+    
+    -- Validity
+    valid_from TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    valid_until TIMESTAMP WITH TIME ZONE,
+    
+    -- Status
+    is_active BOOLEAN DEFAULT TRUE,
+    is_featured BOOLEAN DEFAULT FALSE,
+    
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE INDEX idx_rewards_category ON redemption_rewards(category);
+CREATE INDEX idx_rewards_tier ON redemption_rewards(min_tier);
+CREATE INDEX idx_rewards_active ON redemption_rewards(is_active);
+
+CREATE TRIGGER update_rewards_updated_at
+    BEFORE UPDATE ON redemption_rewards
+    FOR EACH ROW
+    EXECUTE FUNCTION update_updated_at_column();
+
+-- Points redemptions log
+CREATE TABLE IF NOT EXISTS redemptions (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    
+    -- References
+    customer_id VARCHAR(64) NOT NULL,
+    loyalty_profile_id UUID NOT NULL REFERENCES loyalty_profiles(id) ON DELETE CASCADE,
+    reward_id UUID NOT NULL REFERENCES redemption_rewards(id),
+    
+    -- Booking reference (if applicable)
+    booking_id VARCHAR(128),
+    
+    -- Points
+    points_spent INT NOT NULL,
+    
+    -- Status
+    status VARCHAR(32) DEFAULT 'pending', -- 'pending', 'approved', 'fulfilled', 'cancelled'
+    redemption_code VARCHAR(32),
+    
+    -- Fulfillment
+    voucher_code VARCHAR(64),
+    voucher_url VARCHAR(512),
+    fulfilled_at TIMESTAMP WITH TIME ZONE,
+    fulfilled_by VARCHAR(64),
+    
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE INDEX idx_redemptions_customer ON redemptions(customer_id);
+CREATE INDEX idx_redemptions_reward ON redemptions(reward_id);
+CREATE INDEX idx_redemptions_status ON redemptions(status);
+
+CREATE TRIGGER update_redemptions_updated_at
+    BEFORE UPDATE ON redemptions
+    FOR EACH ROW
+    EXECUTE FUNCTION update_updated_at_column();
+
+-- Insert default redemption rewards
+INSERT INTO redemption_rewards (name, description, category, points_cost, value_amount, value_type, requires_booking, is_featured) VALUES
+('10% Booking Discount', 'Get 10% off your next booking', 'discount', 500, 10, 'percentage', TRUE, TRUE),
+('Safari Upgrade', 'Upgrade to premium safari experience', 'upgrade', 2000, 200, 'fixed', TRUE, TRUE),
+('Exclusive Dinner', 'Private dinner experience in the savanna', 'experience', 5000, 500, 'fixed', FALSE, TRUE),
+('Free Night Stay', 'Complimentary night at partner lodge', 'experience', 3000, 300, 'fixed', TRUE, FALSE),
+('Equipment Rental', 'Free camera/safari equipment rental', 'merchandise', 250, 50, 'fixed', FALSE, FALSE)
+ON CONFLICT DO NOTHING;
+
+-- =============================================================================
+-- END OF LOYALTY PROGRAM
+-- =============================================================================

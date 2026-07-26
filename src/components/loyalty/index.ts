@@ -1,0 +1,1 @@
+export { LoyaltyCenter } from './LoyaltyCenter';
