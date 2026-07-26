@@ -1765,3 +1765,358 @@ CREATE TRIGGER update_communication_templates_updated_at
 -- =============================================================================
 -- END OF COMMUNICATION CENTER
 -- =============================================================================
+
+-- =============================================================================
+-- DOCUMENT MANAGEMENT SYSTEM
+-- Generate, store, and manage travel documents
+-- =============================================================================
+
+-- Document types
+CREATE TYPE document_type AS ENUM (
+    'booking_confirmation',
+    'invoice',
+    'safari_itinerary',
+    'travel_checklist',
+    'supplier_voucher',
+    'travel_insurance',
+    'visa_confirmation',
+    'flight_ticket',
+    'hotel_voucher',
+    'other'
+);
+
+-- Document status
+CREATE TYPE document_status AS ENUM (
+    'draft',
+    'generated',
+    'sent',
+    'viewed',
+    'expired'
+);
+
+-- Documents table
+CREATE TABLE IF NOT EXISTS documents (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    
+    -- Document identification
+    document_type document_type NOT NULL,
+    document_number VARCHAR(64) UNIQUE NOT NULL,
+    title VARCHAR(255) NOT NULL,
+    description TEXT,
+    
+    -- Related entities
+    booking_id VARCHAR(128),
+    customer_id VARCHAR(64),
+    supplier_id VARCHAR(64),
+    
+    -- File information
+    file_name VARCHAR(255),
+    file_path VARCHAR(512),
+    file_size BIGINT,
+    mime_type VARCHAR(100) DEFAULT 'application/pdf',
+    
+    -- Document content (JSON for dynamic content)
+    content JSONB DEFAULT '{}',
+    
+    -- Metadata
+    metadata JSONB DEFAULT '{}',
+    
+    -- Status
+    status document_status DEFAULT 'draft',
+    
+    -- Access tracking
+    download_count INT DEFAULT 0,
+    last_downloaded_at TIMESTAMP WITH TIME ZONE,
+    last_downloaded_by VARCHAR(64),
+    
+    -- Delivery tracking
+    sent_via_email BOOLEAN DEFAULT FALSE,
+    sent_at TIMESTAMP WITH TIME ZONE,
+    sent_to_email VARCHAR(255),
+    
+    -- Validity
+    valid_from TIMESTAMP WITH TIME ZONE,
+    valid_until TIMESTAMP WITH TIME ZONE,
+    
+    -- Generation info
+    generated_by VARCHAR(64), -- 'system' or user_id
+    generated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE INDEX idx_documents_type ON documents(document_type);
+CREATE INDEX idx_documents_number ON documents(document_number);
+CREATE INDEX idx_documents_booking ON documents(booking_id);
+CREATE INDEX idx_documents_customer ON documents(customer_id);
+CREATE INDEX idx_documents_supplier ON documents(supplier_id);
+CREATE INDEX idx_documents_status ON documents(status);
+CREATE INDEX idx_documents_created ON documents(created_at DESC);
+
+CREATE TRIGGER update_documents_updated_at
+    BEFORE UPDATE ON documents
+    FOR EACH ROW
+    EXECUTE FUNCTION update_updated_at_column();
+
+-- Document access log
+CREATE TABLE IF NOT EXISTS document_access_log (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    
+    -- Document reference
+    document_id UUID NOT NULL REFERENCES documents(id) ON DELETE CASCADE,
+    
+    -- Access info
+    accessed_by VARCHAR(64) NOT NULL,
+    accessed_by_type VARCHAR(32), -- 'customer', 'supplier', 'admin'
+    access_type VARCHAR(32) NOT NULL, -- 'view', 'download', 'email', 'print'
+    
+    -- IP and device info
+    ip_address INET,
+    user_agent TEXT,
+    device_info JSONB DEFAULT '{}',
+    
+    -- Timestamp
+    accessed_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE INDEX idx_access_log_document ON document_access_log(document_id);
+CREATE INDEX idx_access_log_user ON document_access_log(accessed_by);
+CREATE INDEX idx_access_log_time ON document_access_log(accessed_at DESC);
+
+-- Document templates
+CREATE TABLE IF NOT EXISTS document_templates (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    
+    -- Template identification
+    name VARCHAR(128) NOT NULL UNIQUE,
+    document_type document_type NOT NULL,
+    description TEXT,
+    
+    -- Template content
+    template_content TEXT NOT NULL, -- HTML/template content
+    styles CSS DEFAULT '',
+    
+    -- Variables that can be used in the template
+    variables JSONB DEFAULT '[]',
+    
+    -- Settings
+    is_active BOOLEAN DEFAULT TRUE,
+    is_default BOOLEAN DEFAULT FALSE,
+    
+    -- Versioning
+    version INT DEFAULT 1,
+    
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE INDEX idx_templates_type ON document_templates(document_type);
+CREATE INDEX idx_templates_active ON document_templates(is_active);
+
+CREATE TRIGGER update_templates_updated_at
+    BEFORE UPDATE ON document_templates
+    FOR EACH ROW
+    EXECUTE FUNCTION update_updated_at_column();
+
+-- Document generation queue (for async generation)
+CREATE TABLE IF NOT EXISTS document_generation_queue (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    
+    -- Request info
+    document_type document_type NOT NULL,
+    booking_id VARCHAR(128),
+    customer_id VARCHAR(64),
+    
+    -- Parameters
+    parameters JSONB DEFAULT '{}',
+    
+    -- Priority
+    priority INT DEFAULT 0,
+    
+    -- Status
+    status VARCHAR(32) DEFAULT 'pending', -- 'pending', 'processing', 'completed', 'failed'
+    status_details TEXT,
+    
+    -- Result
+    document_id UUID,
+    error_message TEXT,
+    
+    -- Timing
+    scheduled_for TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    started_at TIMESTAMP WITH TIME ZONE,
+    completed_at TIMESTAMP WITH TIME ZONE,
+    
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE INDEX idx_generation_queue_status ON document_generation_queue(status);
+CREATE INDEX idx_generation_queue_scheduled ON document_generation_queue(scheduled_for) WHERE status = 'pending';
+
+-- Document share links (temporary access)
+CREATE TABLE IF NOT EXISTS document_shares (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    
+    -- Document reference
+    document_id UUID NOT NULL REFERENCES documents(id) ON DELETE CASCADE,
+    
+    -- Share info
+    share_token VARCHAR(128) UNIQUE NOT NULL,
+    share_url VARCHAR(512),
+    
+    -- Access restrictions
+    allowed_emails JSONB DEFAULT '[]', -- Array of emails that can access
+    password_protected BOOLEAN DEFAULT FALSE,
+    password_hash VARCHAR(256),
+    
+    -- Validity
+    valid_from TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    valid_until TIMESTAMP WITH TIME ZONE,
+    max_views INT,
+    
+    -- Tracking
+    view_count INT DEFAULT 0,
+    
+    created_by VARCHAR(64),
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE INDEX idx_shares_token ON document_shares(share_token);
+CREATE INDEX idx_shares_document ON document_shares(document_id);
+
+-- Insert default document templates
+INSERT INTO document_templates (name, document_type, description, template_content, variables, is_default) VALUES
+(
+    'Booking Confirmation',
+    'booking_confirmation',
+    'Standard booking confirmation document',
+    '<!DOCTYPE html>
+<html>
+<head>
+    <title>Booking Confirmation - {{booking_number}}</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 40px; }
+        .header { text-align: center; border-bottom: 2px solid #C89A4B; padding-bottom: 20px; }
+        .confirmation-number { font-size: 24px; color: #C89A4B; }
+        .section { margin: 20px 0; }
+        .section-title { font-weight: bold; color: #2E2015; border-bottom: 1px solid #C89A4B; padding-bottom: 5px; }
+        .detail-row { display: flex; margin: 5px 0; }
+        .detail-label { width: 150px; font-weight: bold; }
+        .footer { margin-top: 40px; text-align: center; font-size: 12px; color: #666; }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>IDENT AFRICA</h1>
+        <p>Booking Confirmation</p>
+        <p class="confirmation-number">{{confirmation_number}}</p>
+    </div>
+    <div class="section">
+        <div class="section-title">Booking Details</div>
+        <div class="detail-row"><span class="detail-label">Booking Number:</span> {{booking_number}}</div>
+        <div class="detail-row"><span class="detail-label">Destination:</span> {{destination}}</div>
+        <div class="detail-row"><span class="detail-label">Travel Date:</span> {{travel_date}}</div>
+        <div class="detail-row"><span class="detail-label">Duration:</span> {{duration}}</div>
+    </div>
+    <div class="section">
+        <div class="section-title">Customer Information</div>
+        <div class="detail-row"><span class="detail-label">Name:</span> {{customer_name}}</div>
+        <div class="detail-row"><span class="detail-label">Email:</span> {{customer_email}}</div>
+        <div class="detail-row"><span class="detail-label">Phone:</span> {{customer_phone}}</div>
+    </div>
+    <div class="section">
+        <div class="section-title">Package Details</div>
+        {{package_details}}
+    </div>
+    <div class="footer">
+        <p>Generated by IDENT AFRICA | Contact: support@ident.africa</p>
+        <p>This document is your official booking confirmation. Please keep it safe.</p>
+    </div>
+</body>
+</html>',
+    '["booking_number", "destination", "travel_date", "duration", "customer_name", "customer_email", "customer_phone", "package_details"]',
+    TRUE
+),
+(
+    'Safari Itinerary',
+    'safari_itinerary',
+    'Detailed safari day-by-day itinerary',
+    '<!DOCTYPE html>
+<html>
+<head>
+    <title>Safari Itinerary - {{booking_number}}</title>
+    <style>
+        body { font-family: Georgia, serif; margin: 40px; }
+        .header { text-align: center; border-bottom: 2px solid #C89A4B; }
+        h1 { color: #2E2015; }
+        .day { margin: 30px 0; padding: 20px; background: #f9f9f9; border-left: 4px solid #C89A4B; }
+        .day-number { color: #C89A4B; font-weight: bold; }
+        .activity { margin: 10px 0; padding-left: 20px; }
+        .time { font-weight: bold; color: #666; }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>IDENT AFRICA SAFARI</h1>
+        <h2>Your Safari Itinerary</h2>
+        <p>{{booking_number}}</p>
+    </div>
+    <div class="customer-info">
+        <p><strong>Traveler:</strong> {{customer_name}}</p>
+        <p><strong>Destination:</strong> {{destination}}</p>
+        <p><strong>Duration:</strong> {{duration}}</p>
+    </div>
+    {{itinerary_days}}
+    <div class="footer">
+        <p>Emergency Contact: +254 700 123 456</p>
+        <p>Your Safari Guide will contact you 24 hours before departure.</p>
+    </div>
+</body>
+</html>',
+    '["booking_number", "customer_name", "destination", "duration", "itinerary_days"]',
+    TRUE
+),
+(
+    'Travel Checklist',
+    'travel_checklist',
+    'Pre-travel checklist for customers',
+    '<!DOCTYPE html>
+<html>
+<head>
+    <title>Travel Checklist - {{booking_number}}</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 40px; }
+        .checklist-item { padding: 10px; border-bottom: 1px solid #eee; }
+        .checkbox { width: 20px; height: 20px; border: 2px solid #C89A4B; display: inline-block; margin-right: 10px; }
+        .section { margin: 20px 0; }
+        .section-title { background: #C89A4B; color: white; padding: 10px; }
+    </style>
+</head>
+<body>
+    <h1>Travel Checklist</h1>
+    <p>Booking: {{booking_number}}</p>
+    <p>Travel Date: {{travel_date}}</p>
+    
+    <div class="section">
+        <div class="section-title">Documents</div>
+        <div class="checklist-item"><span class="checkbox"></span>Valid Passport (6+ months validity)</div>
+        <div class="checklist-item"><span class="checkbox"></span>Visa (if required)</div>
+        <div class="checklist-item"><span class="checkbox"></span>Booking Confirmation</div>
+        <div class="checklist-item"><span class="checkbox"></span>Travel Insurance</div>
+    </div>
+    
+    <div class="section">
+        <div class="section-title">Essentials</div>
+        <div class="checklist-item"><span class="checkbox"></span>Medications</div>
+        <div class="checklist-item"><span class="checkbox"></span>Phone & Charger</div>
+        <div class="checklist-item"><span class="checkbox"></span>Currency / Cards</div>
+    </div>
+</body>
+</html>',
+    '["booking_number", "travel_date"]',
+    TRUE
+);
+
+-- =============================================================================
+-- END OF DOCUMENT MANAGEMENT
+-- =============================================================================
