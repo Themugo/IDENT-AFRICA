@@ -4054,3 +4054,396 @@ ON CONFLICT DO NOTHING;
 -- =============================================================================
 -- END OF WORKFLOW TEMPLATES
 -- =============================================================================
+
+-- =============================================================================
+-- MONETIZATION SYSTEM
+-- Supplier commissions, subscriptions, and promotions
+-- =============================================================================
+
+-- Commission types
+CREATE TYPE commission_type AS ENUM (
+    'global',
+    'supplier_specific',
+    'package_specific'
+);
+
+-- Commission rules
+CREATE TABLE IF NOT EXISTS commission_rules (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    
+    -- Rule info
+    name VARCHAR(128) NOT NULL,
+    description TEXT,
+    
+    -- Commission type and scope
+    commission_type commission_type NOT NULL,
+    
+    -- For supplier-specific
+    supplier_id VARCHAR(64),
+    
+    -- For package-specific
+    package_id VARCHAR(128),
+    
+    -- Commission settings
+    commission_percentage NUMERIC(5, 2) NOT NULL, -- e.g., 15.00 for 15%
+    minimum_commission NUMERIC(12, 2) DEFAULT 0, -- Minimum commission amount
+    maximum_commission NUMERIC(12, 2), -- Maximum commission amount (NULL = no limit)
+    
+    -- Category-based overrides
+    category VARCHAR(64), -- Apply to specific category
+    destination_id VARCHAR(128), -- Apply to specific destination
+    
+    -- Date range
+    start_date DATE,
+    end_date DATE,
+    
+    -- Priority (higher = takes precedence)
+    priority INT DEFAULT 0,
+    
+    -- Status
+    is_active BOOLEAN DEFAULT TRUE,
+    
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE INDEX idx_commission_rules_type ON commission_rules(commission_type);
+CREATE INDEX idx_commission_rules_supplier ON commission_rules(supplier_id);
+CREATE INDEX idx_commission_rules_package ON commission_rules(package_id);
+CREATE INDEX idx_commission_rules_active ON commission_rules(is_active) WHERE is_active = TRUE;
+
+-- Insert default global commission rule
+INSERT INTO commission_rules (name, description, commission_type, commission_percentage, priority) VALUES
+('Default Global Commission', 'Standard commission applied to all bookings', 'global', 15.00, 0)
+ON CONFLICT DO NOTHING;
+
+-- Supplier plans (subscription tiers)
+CREATE TYPE subscription_status AS ENUM (
+    'active',
+    'trial',
+    'expired',
+    'cancelled',
+    'pending'
+);
+
+CREATE TYPE billing_cycle AS ENUM (
+    'monthly',
+    'quarterly',
+    'annual'
+);
+
+CREATE TABLE IF NOT EXISTS supplier_plans (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    
+    -- Plan info
+    plan_name VARCHAR(64) NOT NULL UNIQUE,
+    description TEXT,
+    
+    -- Pricing
+    price_monthly NUMERIC(10, 2) NOT NULL,
+    price_quarterly NUMERIC(10, 2),
+    price_annual NUMERIC(10, 2),
+    
+    -- Features (JSON array of feature names)
+    features JSONB DEFAULT '[]',
+    
+    -- Limits
+    max_packages INT DEFAULT 10,
+    max_images_per_package INT DEFAULT 10,
+    featured_listings_included INT DEFAULT 0,
+    priority_support BOOLEAN DEFAULT FALSE,
+    api_access BOOLEAN DEFAULT FALSE,
+    custom_branding BOOLEAN DEFAULT FALSE,
+    
+    -- Commission discount for this plan (percentage)
+    commission_discount NUMERIC(5, 2) DEFAULT 0,
+    
+    -- Status
+    is_active BOOLEAN DEFAULT TRUE,
+    is_public BOOLEAN DEFAULT TRUE, -- Show in pricing page
+    
+    -- Order for display
+    display_order INT DEFAULT 0,
+    
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Insert default plans
+INSERT INTO supplier_plans (plan_name, description, price_monthly, price_quarterly, price_annual, features, max_packages, display_order) VALUES
+(
+    'Free',
+    'Get started with basic listing features',
+    0.00, 0.00, 0.00,
+    '["basic_listing", "inquiry_only", "basic_analytics"]'::jsonb,
+    3,
+    1
+),
+(
+    'Professional',
+    'Perfect for growing safari businesses',
+    49.00, 129.00, 449.00,
+    '["full_listing", "online_bookings", "advanced_analytics", "email_support", "5_featured"]'::jsonb,
+    25,
+    2
+),
+(
+    'Premium Partner',
+    'For established operators seeking growth',
+    149.00, 399.00, 1399.00,
+    '["full_listing", "online_bookings", "advanced_analytics", "priority_support", "api_access", "custom_branding", "unlimited_featured", "dedicated_manager"]'::jsonb,
+    -1, -- Unlimited
+    3
+)
+ON CONFLICT (plan_name) DO NOTHING;
+
+-- Supplier subscriptions
+CREATE TABLE IF NOT EXISTS supplier_subscriptions (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    
+    -- Supplier reference
+    supplier_id VARCHAR(64) NOT NULL,
+    
+    -- Plan info
+    plan_id UUID REFERENCES supplier_plans(id) ON DELETE SET NULL,
+    plan_name VARCHAR(64), -- Snapshot for historical reference
+    
+    -- Subscription details
+    status subscription_status DEFAULT 'pending',
+    
+    -- Billing
+    billing_cycle billing_cycle DEFAULT 'monthly',
+    price_amount NUMERIC(10, 2) NOT NULL, -- Amount charged
+    currency VARCHAR(3) DEFAULT 'USD',
+    
+    -- Trial
+    trial_ends_at TIMESTAMP WITH TIME ZONE,
+    is_trial_used BOOLEAN DEFAULT FALSE,
+    
+    -- Dates
+    starts_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    expires_at TIMESTAMP WITH TIME ZONE NOT NULL,
+    cancelled_at TIMESTAMP WITH TIME ZONE,
+    
+    -- Payment tracking
+    last_payment_date TIMESTAMP WITH TIME ZONE,
+    next_payment_date TIMESTAMP WITH TIME ZONE,
+    failed_payment_attempts INT DEFAULT 0,
+    
+    -- Features snapshot
+    features_snapshot JSONB DEFAULT '[]',
+    limits_snapshot JSONB DEFAULT '{}',
+    
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE INDEX idx_subscriptions_supplier ON supplier_subscriptions(supplier_id);
+CREATE INDEX idx_subscriptions_status ON supplier_subscriptions(status);
+CREATE INDEX idx_subscriptions_expires ON supplier_subscriptions(expires_at);
+CREATE UNIQUE INDEX idx_subscriptions_active_supplier ON supplier_subscriptions(supplier_id) WHERE status IN ('active', 'trial', 'pending');
+
+-- Subscription payments
+CREATE TABLE IF NOT EXISTS subscription_payments (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    
+    -- Subscription reference
+    subscription_id UUID REFERENCES supplier_subscriptions(id) ON DELETE CASCADE,
+    supplier_id VARCHAR(64) NOT NULL,
+    
+    -- Payment info
+    amount NUMERIC(10, 2) NOT NULL,
+    currency VARCHAR(3) DEFAULT 'USD',
+    
+    -- Status
+    status VARCHAR(32) DEFAULT 'pending', -- 'pending', 'completed', 'failed', 'refunded'
+    
+    -- Billing period
+    period_start TIMESTAMP WITH TIME ZONE,
+    period_end TIMESTAMP WITH TIME ZONE,
+    
+    -- Payment method
+    payment_method VARCHAR(32),
+    payment_reference VARCHAR(128),
+    
+    -- Timestamps
+    paid_at TIMESTAMP WITH TIME ZONE,
+    failed_at TIMESTAMP WITH TIME ZONE,
+    
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE INDEX idx_sub_payments_subscription ON subscription_payments(subscription_id);
+CREATE INDEX idx_sub_payments_supplier ON subscription_payments(supplier_id);
+CREATE INDEX idx_sub_payments_status ON subscription_payments(status);
+
+-- Promoted/Featured listings
+CREATE TYPE promotion_placement AS ENUM (
+    'homepage_hero',
+    'homepage_featured',
+    'search_top',
+    'category_featured',
+    'destination_featured',
+    'newsletter_featured'
+);
+
+CREATE TYPE promotion_payment_status AS ENUM (
+    'pending',
+    'paid',
+    'failed',
+    'refunded'
+);
+
+CREATE TABLE IF NOT EXISTS promoted_listings (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    
+    -- Supplier and package
+    supplier_id VARCHAR(64) NOT NULL,
+    package_id VARCHAR(128), -- NULL for supplier-wide promotion
+    
+    -- Placement
+    placement promotion_placement NOT NULL,
+    
+    -- Date range
+    start_date TIMESTAMP WITH TIME ZONE NOT NULL,
+    end_date TIMESTAMP WITH TIME ZONE NOT NULL,
+    
+    -- Pricing
+    price NUMERIC(10, 2) NOT NULL,
+    currency VARCHAR(3) DEFAULT 'USD',
+    
+    -- Payment
+    payment_status promotion_payment_status DEFAULT 'pending',
+    payment_id UUID,
+    payment_date TIMESTAMP WITH TIME ZONE,
+    
+    -- Status
+    is_active BOOLEAN DEFAULT TRUE,
+    impressions_count INT DEFAULT 0,
+    clicks_count INT DEFAULT 0,
+    
+    -- Admin approval
+    approved_by VARCHAR(64),
+    approved_at TIMESTAMP WITH TIME ZONE,
+    
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE INDEX idx_promoted_supplier ON promoted_listings(supplier_id);
+CREATE INDEX idx_promoted_package ON promoted_listings(package_id);
+CREATE INDEX idx_promoted_placement ON promoted_listings(placement);
+CREATE INDEX idx_promoted_dates ON promoted_listings(start_date, end_date);
+CREATE INDEX idx_promoted_active ON promoted_listings(is_active, start_date, end_date) WHERE is_active = TRUE;
+
+-- Promoted listing pricing (template)
+CREATE TABLE IF NOT EXISTS promotion_pricing (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    
+    -- Placement
+    placement promotion_placement NOT NULL UNIQUE,
+    
+    -- Pricing
+    price_daily NUMERIC(10, 2), -- Daily rate
+    price_weekly NUMERIC(10, 2), -- Weekly rate
+    price_monthly NUMERIC(10, 2), -- Monthly rate
+    
+    -- Settings
+    is_available BOOLEAN DEFAULT TRUE,
+    max_duration_days INT DEFAULT 30,
+    min_duration_days INT DEFAULT 1,
+    
+    -- Priority (for overlapping placements)
+    priority INT DEFAULT 0,
+    
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Insert default promotion pricing
+INSERT INTO promotion_pricing (placement, price_daily, price_weekly, price_monthly, priority) VALUES
+('homepage_hero', 99.00, 599.00, 1999.00, 100),
+('homepage_featured', 49.00, 299.00, 999.00, 80),
+('search_top', 29.00, 169.00, 549.00, 60),
+('category_featured', 19.00, 99.00, 299.00, 40),
+('destination_featured', 19.00, 99.00, 299.00, 40),
+('newsletter_featured', 15.00, 75.00, 249.00, 20)
+ON CONFLICT (placement) DO NOTHING;
+
+-- Revenue tracking
+CREATE TYPE revenue_type AS ENUM (
+    'commission',
+    'subscription',
+    'promotion',
+    'other'
+);
+
+CREATE TABLE IF NOT EXISTS revenue (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    
+    -- Revenue type
+    revenue_type revenue_type NOT NULL,
+    
+    -- Amount
+    gross_amount NUMERIC(12, 2) NOT NULL,
+    net_amount NUMERIC(12, 2) NOT NULL, -- After any fees/refunds
+    currency VARCHAR(3) DEFAULT 'USD',
+    
+    -- Source reference
+    booking_id VARCHAR(128), -- For commission revenue
+    supplier_id VARCHAR(64), -- For subscription/promotion
+    subscription_id UUID, -- For subscription revenue
+    promotion_id UUID, -- For promotion revenue
+    
+    -- Period (for reporting)
+    revenue_date DATE NOT NULL,
+    revenue_month INT, -- YYYYMM format
+    revenue_year INT,
+    
+    -- Details
+    description TEXT,
+    metadata JSONB DEFAULT '{}',
+    
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE INDEX idx_revenue_type ON revenue(revenue_type);
+CREATE INDEX idx_revenue_date ON revenue(revenue_date);
+CREATE INDEX idx_revenue_month ON revenue(revenue_month);
+CREATE INDEX idx_revenue_supplier ON revenue(supplier_id);
+CREATE INDEX idx_revenue_booking ON revenue(booking_id);
+
+-- Revenue summary (materialized for fast reporting)
+CREATE TABLE IF NOT EXISTS revenue_summary (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    
+    -- Period
+    period_type VARCHAR(16) NOT NULL, -- 'daily', 'monthly', 'yearly'
+    period_start DATE NOT NULL,
+    period_end DATE NOT NULL,
+    
+    -- Revenue by type
+    commission_revenue NUMERIC(12, 2) DEFAULT 0,
+    subscription_revenue NUMERIC(12, 2) DEFAULT 0,
+    promotion_revenue NUMERIC(12, 2) DEFAULT 0,
+    other_revenue NUMERIC(12, 2) DEFAULT 0,
+    
+    -- Total
+    total_revenue NUMERIC(12, 2) DEFAULT 0,
+    
+    -- Counts
+    total_bookings INT DEFAULT 0,
+    total_subscriptions INT DEFAULT 0,
+    total_promotions INT DEFAULT 0,
+    
+    -- Currency
+    currency VARCHAR(3) DEFAULT 'USD',
+    
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    
+    UNIQUE(period_type, period_start, currency)
+);
+
+-- =============================================================================
+-- END OF MONETIZATION SYSTEM
+-- =============================================================================

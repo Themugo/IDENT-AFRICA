@@ -31,6 +31,7 @@ import loyaltyRouter from './src/routes/loyalty.js';
 import qualityRouter from './src/routes/quality.js';
 import sustainabilityRouter from './src/routes/sustainability.js';
 import automationRouter from './src/routes/automation.js';
+import monetizationRouter from './src/routes/monetization.js';
 
 dotenv.config();
 
@@ -172,6 +173,7 @@ async function startServer() {
   app.use('/api/quality', qualityRouter);
   app.use('/api/sustainability', sustainabilityRouter);
   app.use('/api/automation', automationRouter);
+  app.use('/api/monetization', monetizationRouter);
 
   // API Route: Live Exchange Rates
   app.get('/api/exchange-rates', async (_req, res) => {
