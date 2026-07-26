@@ -3322,21 +3322,75 @@ CREATE TYPE sustainability_filter AS ENUM (
 
 -- Event types
 CREATE TYPE automation_event_type AS ENUM (
+    -- User events
+    'user.registered',
+    'user.login',
+    'user.logout',
+    'user.profile_updated',
+    
+    -- Content events
+    'destination.viewed',
+    'destination.created',
+    'destination.updated',
+    'destination.deleted',
+    'package.saved',
+    'package.viewed',
+    'itinerary.created',
+    'itinerary.updated',
+    'content.updated',
+    
+    -- Booking events
     'booking.created',
     'booking.updated',
     'booking.cancelled',
+    'booking.confirmed',
+    'booking.completed',
+    
+    -- Payment events
+    'payment.initiated',
     'payment.completed',
     'payment.failed',
     'payment.refunded',
+    'payment.partially_refunded',
+    'commission.calculated',
+    'commission.paid',
+    
+    -- Supplier events
+    'supplier.registered',
     'supplier.approved',
     'supplier.rejected',
     'supplier.suspended',
+    'supplier.package_created',
+    'supplier.booking_received',
+    
+    -- Review events
     'review.submitted',
     'review.approved',
+    'review.rejected',
+    
+    -- Document events
     'document.generated',
-    'notification.sent',
+    'document.sent',
+    'document.viewed',
+    'document.downloaded',
+    
+    -- Loyalty events
     'loyalty.points_earned',
-    'loyalty.tier_upgraded'
+    'loyalty.points_redeemed',
+    'loyalty.tier_upgraded',
+    
+    -- Notification events
+    'notification.sent',
+    'notification.viewed',
+    'email.sent',
+    'email.opened',
+    
+    -- Analytics events
+    'analytics.page_view',
+    'analytics.search',
+    'analytics.filter_applied',
+    'analytics.booking_started',
+    'analytics.checkout_started'
 );
 
 -- Action types
@@ -3672,4 +3726,331 @@ ON CONFLICT DO NOTHING;
 
 -- =============================================================================
 -- END OF AUTOMATION ENGINE
+-- =============================================================================
+
+-- =============================================================================
+-- ANALYTICS TRACKING
+-- Event-based analytics and tracking
+-- =============================================================================
+
+-- Page views and sessions
+CREATE TABLE IF NOT EXISTS page_views (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    
+    -- Session info
+    session_id VARCHAR(128),
+    user_id VARCHAR(64),
+    
+    -- Page info
+    page_type VARCHAR(64) NOT NULL, -- 'home', 'destination', 'package', 'booking', 'cms'
+    page_id VARCHAR(128),
+    url VARCHAR(512),
+    
+    -- Referrer
+    referrer VARCHAR(512),
+    referrer_type VARCHAR(32), -- 'internal', 'external', 'direct'
+    
+    -- Device info
+    device_type VARCHAR(32), -- 'desktop', 'mobile', 'tablet'
+    browser VARCHAR(64),
+    os VARCHAR(64),
+    
+    -- Location
+    country VARCHAR(64),
+    city VARCHAR(128),
+    
+    -- Timing
+    view_duration_seconds INT DEFAULT 0,
+    scroll_depth NUMERIC(5, 2), -- Percentage
+    
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE INDEX idx_page_views_session ON page_views(session_id);
+CREATE INDEX idx_page_views_user ON page_views(user_id);
+CREATE INDEX idx_page_views_type ON page_views(page_type);
+CREATE INDEX idx_page_views_created ON page_views(created_at DESC);
+
+-- Search analytics
+CREATE TABLE IF NOT EXISTS search_analytics (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    
+    -- Search info
+    session_id VARCHAR(128),
+    user_id VARCHAR(64),
+    
+    -- Query
+    query_text TEXT,
+    filters JSONB DEFAULT '{}',
+    results_count INT DEFAULT 0,
+    clicked_result_index INT,
+    clicked_result_id VARCHAR(128),
+    
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE INDEX idx_search_session ON search_analytics(session_id);
+CREATE INDEX idx_search_user ON search_analytics(user_id);
+CREATE INDEX idx_search_created ON search_analytics(created_at DESC);
+
+-- Booking funnel tracking
+CREATE TABLE IF NOT EXISTS booking_funnel (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    
+    -- Funnel step
+    session_id VARCHAR(128) NOT NULL,
+    user_id VARCHAR(64),
+    
+    -- Funnel info
+    step VARCHAR(64) NOT NULL, -- 'view', 'save', 'itinerary', 'select_package', 'checkout', 'payment', 'confirmation'
+    
+    -- Context
+    destination_id VARCHAR(128),
+    package_id VARCHAR(128),
+    booking_id VARCHAR(128),
+    
+    -- Timing
+    time_on_step_seconds INT DEFAULT 0,
+    
+    -- Result
+    completed BOOLEAN DEFAULT FALSE,
+    abandoned BOOLEAN DEFAULT FALSE,
+    
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE INDEX idx_funnel_session ON booking_funnel(session_id);
+CREATE INDEX idx_funnel_step ON booking_funnel(step);
+CREATE INDEX idx_funnel_created ON booking_funnel(created_at DESC);
+
+-- Conversion tracking
+CREATE TABLE IF NOT EXISTS conversions (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    
+    -- Conversion type
+    conversion_type VARCHAR(64) NOT NULL, -- 'registration', 'booking', 'package_save', 'newsletter'
+    
+    -- Attribution
+    session_id VARCHAR(128),
+    user_id VARCHAR(64),
+    
+    -- Source
+    source VARCHAR(64), -- 'organic', 'paid', 'referral', 'email', 'social'
+    medium VARCHAR(64),
+    campaign VARCHAR(128),
+    
+    -- Value
+    value NUMERIC(12, 2) DEFAULT 0,
+    currency VARCHAR(3) DEFAULT 'USD',
+    
+    -- Context
+    booking_id VARCHAR(128),
+    
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE INDEX idx_conversions_type ON conversions(conversion_type);
+CREATE INDEX idx_conversions_user ON conversions(user_id);
+CREATE INDEX idx_conversions_source ON conversions(source);
+CREATE INDEX idx_conversions_created ON conversions(created_at DESC);
+
+-- Event subscribers (which workflows to trigger for each event)
+CREATE TABLE IF NOT EXISTS event_subscribers (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    
+    -- Event configuration
+    event_type automation_event_type NOT NULL,
+    workflow_id UUID REFERENCES workflows(id) ON DELETE CASCADE,
+    
+    -- Conditions (JSONB for advanced filtering)
+    conditions JSONB DEFAULT '{}',
+    
+    -- Status
+    is_active BOOLEAN DEFAULT TRUE,
+    
+    -- Priority (lower = higher priority)
+    priority INT DEFAULT 100,
+    
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    
+    UNIQUE(event_type, workflow_id)
+);
+
+CREATE INDEX idx_subscribers_event ON event_subscribers(event_type);
+CREATE INDEX idx_subscribers_workflow ON event_subscribers(workflow_id);
+CREATE INDEX idx_subscribers_active ON event_subscribers(is_active) WHERE is_active = TRUE;
+
+-- Insert default event subscribers
+INSERT INTO event_subscribers (event_type, workflow_id, priority) 
+SELECT 'booking.created', id, 10 FROM workflows WHERE name = 'Booking Confirmation Email'
+ON CONFLICT DO NOTHING;
+
+INSERT INTO event_subscribers (event_type, workflow_id, priority)
+SELECT 'payment.completed', id, 20 FROM workflows WHERE name = 'Payment Confirmation'
+ON CONFLICT DO NOTHING;
+
+INSERT INTO event_subscribers (event_type, workflow_id, priority)
+SELECT 'supplier.approved', id, 15 FROM workflows WHERE name = 'Supplier Approval Notification'
+ON CONFLICT DO NOTHING;
+
+INSERT INTO event_subscribers (event_type, workflow_id, priority)
+SELECT 'review.submitted', id, 25 FROM workflows WHERE name = 'Review Submitted'
+ON CONFLICT DO NOTHING;
+
+-- Workflow event triggers (link workflows to specific events they should listen to)
+CREATE TABLE IF NOT EXISTS workflow_event_triggers (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    
+    -- References
+    workflow_id UUID REFERENCES workflows(id) ON DELETE CASCADE,
+    event_type automation_event_type NOT NULL,
+    
+    -- Filter conditions
+    conditions JSONB DEFAULT '{}',
+    
+    -- Status
+    is_active BOOLEAN DEFAULT TRUE,
+    
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    
+    UNIQUE(workflow_id, event_type)
+);
+
+-- Insert workflow event triggers for existing workflows
+INSERT INTO workflow_event_triggers (workflow_id, event_type)
+SELECT id, 'booking.created' FROM workflows WHERE name = 'Booking Confirmation Email'
+ON CONFLICT DO NOTHING;
+
+INSERT INTO workflow_event_triggers (workflow_id, event_type)
+SELECT id, 'payment.completed' FROM workflows WHERE name = 'Payment Confirmation'
+ON CONFLICT DO NOTHING;
+
+INSERT INTO workflow_event_triggers (workflow_id, event_type)
+SELECT id, 'supplier.approved' FROM workflows WHERE name = 'Supplier Approval Notification'
+ON CONFLICT DO NOTHING;
+
+INSERT INTO workflow_event_triggers (workflow_id, event_type)
+SELECT id, 'review.submitted' FROM workflows WHERE name = 'Review Submitted'
+ON CONFLICT DO NOTHING;
+
+-- =============================================================================
+-- END OF ANALYTICS TRACKING
+-- =============================================================================
+
+-- =============================================================================
+-- WORKFLOW TEMPLATES
+-- Pre-configured workflow templates for common scenarios
+-- =============================================================================
+
+CREATE TABLE IF NOT EXISTS workflow_templates (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    
+    -- Template info
+    name VARCHAR(128) NOT NULL,
+    description TEXT,
+    category VARCHAR(64), -- 'onboarding', 'marketing', 'operations', 'notifications'
+    
+    -- Configuration
+    trigger_event automation_event_type NOT NULL,
+    actions JSONB NOT NULL,
+    conditions JSONB DEFAULT '{}',
+    
+    -- Settings
+    priority INT DEFAULT 100,
+    max_retries INT DEFAULT 3,
+    timeout_seconds INT DEFAULT 300,
+    
+    -- Status
+    is_active BOOLEAN DEFAULT TRUE,
+    is_system BOOLEAN DEFAULT FALSE, -- System templates cannot be deleted
+    
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Insert workflow templates
+INSERT INTO workflow_templates (name, description, category, trigger_event, actions, is_system) VALUES
+(
+    'Welcome New User',
+    'Welcome email and onboarding sequence for new users',
+    'onboarding',
+    'user.registered',
+    '[
+        {"type": "send_email", "template": "welcome"},
+        {"type": "send_notification", "message": "Welcome to IDENT AFRICA!"},
+        {"type": "loyalty_award", "points": 100, "reason": "signup_bonus"}
+    ]'::jsonb,
+    TRUE
+),
+(
+    'Destination Popularity Alert',
+    'Notify admin when destination gets popular',
+    'marketing',
+    'destination.viewed',
+    '[
+        {"type": "update_analytics", "metric": "destination_views"},
+        {"type": "send_notification", "template": "destination_trending"}
+    ]'::jsonb,
+    TRUE
+),
+(
+    'Package Saved Follow-up',
+    'Follow up with users who saved a package',
+    'marketing',
+    'package.saved',
+    '[
+        {"type": "send_notification", "message": "Remember to book your safari!"},
+        {"type": "update_analytics", "metric": "package_save_rate"}
+    ]'::jsonb,
+    TRUE
+),
+(
+    'Booking Abandonment Reminder',
+    'Remind users who abandoned checkout',
+    'marketing',
+    'analytics.checkout_started',
+    '[
+        {"type": "send_email", "template": "booking_abandoned"},
+        {"type": "update_analytics", "metric": "abandonment_rate"}
+    ]'::jsonb,
+    TRUE
+),
+(
+    'Post-Booking Survey',
+    'Send survey after booking completion',
+    'operations',
+    'booking.completed',
+    '[
+        {"type": "send_email", "template": "post_booking_survey"},
+        {"type": "loyalty_award", "points": 50, "reason": "booking_completed"}
+    ]'::jsonb,
+    TRUE
+),
+(
+    'Payment Failure Recovery',
+    'Handle payment failures gracefully',
+    'operations',
+    'payment.failed',
+    '[
+        {"type": "send_email", "template": "payment_failed"},
+        {"type": "send_notification", "message": "Payment failed - please retry"}
+    ]'::jsonb,
+    TRUE
+),
+(
+    'Content Update Notification',
+    'Notify relevant users of content updates',
+    'notifications',
+    'content.updated',
+    '[
+        {"type": "send_notification", "template": "content_updated"},
+        {"type": "update_analytics", "metric": "content_update_views"}
+    ]'::jsonb,
+    TRUE
+)
+ON CONFLICT DO NOTHING;
+
+-- =============================================================================
+-- END OF WORKFLOW TEMPLATES
 -- =============================================================================

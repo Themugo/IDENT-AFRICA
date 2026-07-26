@@ -666,21 +666,70 @@ router.get('/stats', async (req: Request, res: Response) => {
 router.get('/event-types', async (req: Request, res: Response) => {
   try {
     const eventTypes = [
-      { id: 'booking.created', name: 'Booking Created', description: 'Triggered when a new booking is created', category: 'booking' },
-      { id: 'booking.updated', name: 'Booking Updated', description: 'Triggered when a booking is updated', category: 'booking' },
-      { id: 'booking.cancelled', name: 'Booking Cancelled', description: 'Triggered when a booking is cancelled', category: 'booking' },
-      { id: 'payment.completed', name: 'Payment Completed', description: 'Triggered when payment is successfully processed', category: 'payment' },
-      { id: 'payment.failed', name: 'Payment Failed', description: 'Triggered when payment fails', category: 'payment' },
-      { id: 'payment.refunded', name: 'Payment Refunded', description: 'Triggered when a payment is refunded', category: 'payment' },
-      { id: 'supplier.approved', name: 'Supplier Approved', description: 'Triggered when a supplier is approved', category: 'supplier' },
-      { id: 'supplier.rejected', name: 'Supplier Rejected', description: 'Triggered when a supplier is rejected', category: 'supplier' },
-      { id: 'supplier.suspended', name: 'Supplier Suspended', description: 'Triggered when a supplier is suspended', category: 'supplier' },
-      { id: 'review.submitted', name: 'Review Submitted', description: 'Triggered when a review is submitted', category: 'review' },
-      { id: 'review.approved', name: 'Review Approved', description: 'Triggered when a review is approved', category: 'review' },
-      { id: 'document.generated', name: 'Document Generated', description: 'Triggered when a document is generated', category: 'document' },
-      { id: 'notification.sent', name: 'Notification Sent', description: 'Triggered when a notification is sent', category: 'notification' },
-      { id: 'loyalty.points_earned', name: 'Points Earned', description: 'Triggered when loyalty points are earned', category: 'loyalty' },
-      { id: 'loyalty.tier_upgraded', name: 'Tier Upgraded', description: 'Triggered when customer tier is upgraded', category: 'loyalty' },
+      // User events
+      { id: 'user.registered', name: 'User Registered', description: 'Triggered when a user registers', category: 'user', icon: '👤' },
+      { id: 'user.login', name: 'User Login', description: 'Triggered when a user logs in', category: 'user', icon: '🔓' },
+      { id: 'user.logout', name: 'User Logout', description: 'Triggered when a user logs out', category: 'user', icon: '🔒' },
+      { id: 'user.profile_updated', name: 'Profile Updated', description: 'Triggered when user profile is updated', category: 'user', icon: '📝' },
+      
+      // Content events
+      { id: 'destination.viewed', name: 'Destination Viewed', description: 'Triggered when a destination is viewed', category: 'content', icon: '🗺️' },
+      { id: 'destination.created', name: 'Destination Created', description: 'Triggered when a destination is created', category: 'content', icon: '✨' },
+      { id: 'destination.updated', name: 'Destination Updated', description: 'Triggered when a destination is updated', category: 'content', icon: '📝' },
+      { id: 'package.saved', name: 'Package Saved', description: 'Triggered when a package is saved', category: 'content', icon: '❤️' },
+      { id: 'package.viewed', name: 'Package Viewed', description: 'Triggered when a package is viewed', category: 'content', icon: '👁️' },
+      { id: 'itinerary.created', name: 'Itinerary Created', description: 'Triggered when an itinerary is created', category: 'content', icon: '📋' },
+      { id: 'content.updated', name: 'Content Updated', description: 'Triggered when content is updated', category: 'content', icon: '🔄' },
+      
+      // Booking events
+      { id: 'booking.created', name: 'Booking Created', description: 'Triggered when a new booking is created', category: 'booking', icon: '📅' },
+      { id: 'booking.updated', name: 'Booking Updated', description: 'Triggered when a booking is updated', category: 'booking', icon: '✏️' },
+      { id: 'booking.cancelled', name: 'Booking Cancelled', description: 'Triggered when a booking is cancelled', category: 'booking', icon: '❌' },
+      { id: 'booking.confirmed', name: 'Booking Confirmed', description: 'Triggered when a booking is confirmed', category: 'booking', icon: '✅' },
+      { id: 'booking.completed', name: 'Booking Completed', description: 'Triggered when a booking is completed', category: 'booking', icon: '🏁' },
+      
+      // Payment events
+      { id: 'payment.initiated', name: 'Payment Initiated', description: 'Triggered when payment is started', category: 'payment', icon: '💳' },
+      { id: 'payment.completed', name: 'Payment Completed', description: 'Triggered when payment is successfully processed', category: 'payment', icon: '✅' },
+      { id: 'payment.failed', name: 'Payment Failed', description: 'Triggered when payment fails', category: 'payment', icon: '❌' },
+      { id: 'payment.refunded', name: 'Payment Refunded', description: 'Triggered when a payment is refunded', category: 'payment', icon: '💰' },
+      
+      // Supplier events
+      { id: 'supplier.registered', name: 'Supplier Registered', description: 'Triggered when a supplier registers', category: 'supplier', icon: '🏪' },
+      { id: 'supplier.approved', name: 'Supplier Approved', description: 'Triggered when a supplier is approved', category: 'supplier', icon: '✅' },
+      { id: 'supplier.rejected', name: 'Supplier Rejected', description: 'Triggered when a supplier is rejected', category: 'supplier', icon: '❌' },
+      { id: 'supplier.suspended', name: 'Supplier Suspended', description: 'Triggered when a supplier is suspended', category: 'supplier', icon: '⚠️' },
+      { id: 'supplier.package_created', name: 'Supplier Package Created', description: 'Triggered when supplier creates a package', category: 'supplier', icon: '📦' },
+      { id: 'supplier.booking_received', name: 'Supplier Booking Received', description: 'Triggered when supplier receives a booking', category: 'supplier', icon: '📨' },
+      
+      // Review events
+      { id: 'review.submitted', name: 'Review Submitted', description: 'Triggered when a review is submitted', category: 'review', icon: '⭐' },
+      { id: 'review.approved', name: 'Review Approved', description: 'Triggered when a review is approved', category: 'review', icon: '✅' },
+      { id: 'review.rejected', name: 'Review Rejected', description: 'Triggered when a review is rejected', category: 'review', icon: '❌' },
+      
+      // Document events
+      { id: 'document.generated', name: 'Document Generated', description: 'Triggered when a document is generated', category: 'document', icon: '📄' },
+      { id: 'document.sent', name: 'Document Sent', description: 'Triggered when a document is sent', category: 'document', icon: '📤' },
+      { id: 'document.viewed', name: 'Document Viewed', description: 'Triggered when a document is viewed', category: 'document', icon: '👁️' },
+      { id: 'document.downloaded', name: 'Document Downloaded', description: 'Triggered when a document is downloaded', category: 'document', icon: '📥' },
+      
+      // Loyalty events
+      { id: 'loyalty.points_earned', name: 'Points Earned', description: 'Triggered when loyalty points are earned', category: 'loyalty', icon: '🎁' },
+      { id: 'loyalty.points_redeemed', name: 'Points Redeemed', description: 'Triggered when loyalty points are redeemed', category: 'loyalty', icon: '🏷️' },
+      { id: 'loyalty.tier_upgraded', name: 'Tier Upgraded', description: 'Triggered when customer tier is upgraded', category: 'loyalty', icon: '⬆️' },
+      
+      // Notification events
+      { id: 'notification.sent', name: 'Notification Sent', description: 'Triggered when a notification is sent', category: 'notification', icon: '🔔' },
+      { id: 'notification.viewed', name: 'Notification Viewed', description: 'Triggered when a notification is viewed', category: 'notification', icon: '👁️' },
+      { id: 'email.sent', name: 'Email Sent', description: 'Triggered when an email is sent', category: 'notification', icon: '📧' },
+      { id: 'email.opened', name: 'Email Opened', description: 'Triggered when an email is opened', category: 'notification', icon: '📬' },
+      
+      // Analytics events
+      { id: 'analytics.page_view', name: 'Page View', description: 'Triggered on page view', category: 'analytics', icon: '📊' },
+      { id: 'analytics.search', name: 'Search Performed', description: 'Triggered when user performs search', category: 'analytics', icon: '🔍' },
+      { id: 'analytics.filter_applied', name: 'Filter Applied', description: 'Triggered when filter is applied', category: 'analytics', icon: '🔽' },
+      { id: 'analytics.booking_started', name: 'Booking Started', description: 'Triggered when booking process starts', category: 'analytics', icon: '🚀' },
+      { id: 'analytics.checkout_started', name: 'Checkout Started', description: 'Triggered when checkout starts', category: 'analytics', icon: '🛒' },
     ];
 
     res.status(200).json(createResponse(true, { event_types: eventTypes }));
