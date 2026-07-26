@@ -34,6 +34,17 @@ import automationRouter from './src/routes/automation.js';
 import monetizationRouter from './src/routes/monetization.js';
 import migrationRouter from './src/routes/migration.js';
 
+// Monitoring services
+import { logger } from './src/services/monitoring/logger.js';
+import { performanceMonitor, performanceTracker } from './src/services/monitoring/performance.js';
+import { 
+  getHealthStatus, 
+  getSystemStatus, 
+  getReadinessStatus, 
+  getLivenessStatus,
+  trackRequest 
+} from './src/services/monitoring/health.js';
+
 dotenv.config();
 
 const __filename = fileURLToPath(import.meta.url);
@@ -133,6 +144,21 @@ async function startServer() {
   app.use(express.json({ limit: '10kb' }));
   app.use(express.urlencoded({ extended: true, limit: '10kb' }));
 
+  // Performance tracking middleware
+  app.use(performanceTracker());
+
+  // Request tracking for logging
+  app.use(trackRequest());
+
+  // Error tracking middleware
+  app.use((err: Error, req: Request, res: Response, next: NextFunction) => {
+    logger.logError(err, `${req.method} ${req.path}`, {
+      ip: req.ip,
+      userAgent: req.get('user-agent'),
+    });
+    next(err);
+  });
+
   // Request logging middleware
   app.use((req: Request, res: Response, next: NextFunction) => {
     const requestId = generateRequestId();
@@ -231,13 +257,52 @@ async function startServer() {
   });
 
   // API Route: Health check
-  app.get('/api/health', (_req, res) => {
-    res.status(200).json({ 
-      status: 'ok', 
-      app: 'Ident Africa', 
-      version: '1.0.0',
-      environment: NODE_ENV,
-      timestamp: new Date().toISOString() 
+  app.get('/api/health', async (_req, res) => {
+    try {
+      const health = await getHealthStatus();
+      res.status(health.status === 'healthy' ? 200 : 503).json(health);
+    } catch (error) {
+      res.status(200).json({ 
+        status: 'ok', 
+        app: 'Ident Africa', 
+        version: '1.0.0',
+        environment: NODE_ENV,
+        timestamp: new Date().toISOString() 
+      });
+    }
+  });
+
+  // API Route: Detailed status
+  app.get('/api/status', async (_req, res) => {
+    try {
+      const status = await getSystemStatus();
+      res.status(200).json(status);
+    } catch (error) {
+      res.status(500).json({ 
+        error: 'Failed to get system status',
+        timestamp: new Date().toISOString() 
+      });
+    }
+  });
+
+  // API Route: Readiness check (Kubernetes)
+  app.get('/api/ready', async (_req, res) => {
+    const readiness = await getReadinessStatus();
+    res.status(readiness.ready ? 200 : 503).json(readiness);
+  });
+
+  // API Route: Liveness check (Kubernetes)
+  app.get('/api/live', (_req, res) => {
+    const liveness = getLivenessStatus();
+    res.status(200).json(liveness);
+  });
+
+  // API Route: Performance metrics
+  app.get('/api/metrics', (_req, res) => {
+    const summary = performanceMonitor.getPerformanceSummary();
+    res.status(200).json({
+      timestamp: new Date().toISOString(),
+      performance: summary,
     });
   });
 
