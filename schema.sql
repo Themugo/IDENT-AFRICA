@@ -2826,3 +2826,491 @@ CREATE TRIGGER update_alerts_updated_at
 -- =============================================================================
 -- END OF SUPPLIER QUALITY SCORING
 -- =============================================================================
+
+-- =============================================================================
+-- SUSTAINABILITY & ECO TRAVEL SYSTEM
+-- Environmental impact tracking and sustainability scoring
+-- =============================================================================
+
+-- Sustainability score types
+CREATE TYPE sustainability_category AS ENUM (
+    'conservation',
+    'community',
+    'wildlife',
+    'carbon',
+    'overall'
+);
+
+-- Eco badge types
+CREATE TYPE eco_badge_type AS ENUM (
+    'carbon_neutral',
+    'eco_certified',
+    'community_support',
+    'wildlife_friendly',
+    'green_partner',
+    'sustainable_leader',
+    'plastic_free',
+    'renewable_energy',
+    'waste_reducer',
+    'water_saver'
+);
+
+-- Supplier sustainability profiles
+CREATE TABLE IF NOT EXISTS supplier_sustainability (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    
+    -- Supplier reference
+    supplier_id VARCHAR(64) NOT NULL UNIQUE,
+    
+    -- Overall sustainability score (0-100)
+    overall_score NUMERIC(5, 2) DEFAULT 0,
+    sustainability_grade VARCHAR(2), -- A, B, C, D
+    
+    -- Category scores (0-100 each)
+    conservation_score NUMERIC(5, 2) DEFAULT 0,
+    community_score NUMERIC(5, 2) DEFAULT 0,
+    wildlife_score NUMERIC(5, 2) DEFAULT 0,
+    carbon_score NUMERIC(5, 2) DEFAULT 0,
+    
+    -- Eco badges
+    eco_badges eco_badge_type[] DEFAULT '{}',
+    primary_eco_badge eco_badge_type,
+    
+    -- Carbon metrics
+    total_carbon_offset_kg NUMERIC(12, 2) DEFAULT 0,
+    monthly_carbon_saved_kg NUMERIC(12, 2) DEFAULT 0,
+    carbon_neutral BOOLEAN DEFAULT FALSE,
+    
+    -- Conservation impact
+    conservation_projects INT DEFAULT 0,
+    acres_protected NUMERIC(12, 2) DEFAULT 0,
+    animals_protected INT DEFAULT 0,
+    trees_planted INT DEFAULT 0,
+    
+    -- Community impact
+    community_projects INT DEFAULT 0,
+    local_employees INT DEFAULT 0,
+    local_sourcing_percentage NUMERIC(5, 2) DEFAULT 0,
+    community_investment_usd NUMERIC(12, 2) DEFAULT 0,
+    
+    -- Wildlife protection
+    anti_poaching_partnership BOOLEAN DEFAULT FALSE,
+    wildlife_corridors_maintained BOOLEAN DEFAULT FALSE,
+    habitat_restoration_sq_km NUMERIC(10, 2) DEFAULT 0,
+    
+    -- Verification
+    is_verified BOOLEAN DEFAULT FALSE,
+    verification_date DATE,
+    last_audit_date DATE,
+    next_audit_date DATE,
+    
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE INDEX idx_sustainability_supplier ON supplier_sustainability(supplier_id);
+CREATE INDEX idx_sustainability_score ON supplier_sustainability(overall_score DESC);
+CREATE INDEX idx_sustainability_carbon_neutral ON supplier_sustainability(carbon_neutral) WHERE carbon_neutral = TRUE;
+
+CREATE TRIGGER update_sustainability_updated_at
+    BEFORE UPDATE ON supplier_sustainability
+    FOR EACH ROW
+    EXECUTE FUNCTION update_updated_at_column();
+
+-- Conservation projects
+CREATE TABLE IF NOT EXISTS conservation_projects (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    
+    -- Project info
+    name VARCHAR(255) NOT NULL,
+    description TEXT,
+    category VARCHAR(64), -- 'wildlife', 'forest', 'marine', 'community'
+    
+    -- Location
+    location VARCHAR(255),
+    country VARCHAR(64),
+    latitude NUMERIC(10, 8),
+    longitude NUMERIC(11, 8),
+    
+    -- Impact metrics
+    area_sq_km NUMERIC(12, 2),
+    target_species JSONB DEFAULT '[]',
+    current_population INT,
+    
+    -- Funding
+    funding_goal_usd NUMERIC(12, 2),
+    funding_received_usd NUMERIC(12, 2) DEFAULT 0,
+    funding_source VARCHAR(64), -- 'supplier', 'customer', 'donation'
+    
+    -- Partner info
+    partner_organization VARCHAR(255),
+    partner_url VARCHAR(512),
+    
+    -- Status
+    status VARCHAR(32) DEFAULT 'active', -- 'planning', 'active', 'completed', 'paused'
+    start_date DATE,
+    end_date DATE,
+    
+    -- Tracking
+    impact_metrics JSONB DEFAULT '{}', -- Flexible JSON for various metrics
+    progress_percentage NUMERIC(5, 2) DEFAULT 0,
+    
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE INDEX idx_conservation_supplier ON conservation_projects USING GIN(target_species);
+CREATE INDEX idx_conservation_category ON conservation_projects(category);
+CREATE INDEX idx_conservation_status ON conservation_projects(status);
+CREATE INDEX idx_conservation_location ON conservation_projects(country);
+
+CREATE TRIGGER update_conservation_updated_at
+    BEFORE UPDATE ON conservation_projects
+    FOR EACH ROW
+    EXECUTE FUNCTION update_updated_at_column();
+
+-- Supplier conservation contributions
+CREATE TABLE IF NOT EXISTS supplier_conservation_contributions (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    
+    -- References
+    supplier_id VARCHAR(64) NOT NULL,
+    project_id UUID REFERENCES conservation_projects(id) ON DELETE CASCADE,
+    
+    -- Contribution details
+    contribution_type VARCHAR(64) NOT NULL, -- 'financial', 'volunteer', 'equipment', 'awareness'
+    amount_usd NUMERIC(12, 2),
+    description TEXT,
+    
+    -- Impact
+    impact_description TEXT,
+    impact_value NUMERIC(12, 2), -- e.g., acres protected, animals saved
+    
+    -- Status
+    status VARCHAR(32) DEFAULT 'confirmed',
+    
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE INDEX idx_contributions_supplier ON supplier_conservation_contributions(supplier_id);
+CREATE INDEX idx_contributions_project ON supplier_conservation_contributions(project_id);
+
+-- Carbon footprint tracking
+CREATE TABLE IF NOT EXISTS carbon_footprints (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    
+    -- Reference
+    booking_id VARCHAR(128) NOT NULL,
+    supplier_id VARCHAR(64),
+    customer_id VARCHAR(64),
+    
+    -- Transport emissions (kg CO2)
+    transport_type VARCHAR(64), -- 'flight', 'car', 'train', 'boat'
+    transport_distance_km NUMERIC(10, 2),
+    transport_emissions_kg NUMERIC(10, 2),
+    
+    -- Accommodation emissions
+    accommodation_nights INT,
+    accommodation_emissions_kg NUMERIC(10, 2),
+    
+    -- Activity emissions
+    activity_emissions_kg NUMERIC(10, 2) DEFAULT 0,
+    
+    -- Totals
+    total_emissions_kg NUMERIC(10, 2) NOT NULL,
+    offset_cost_usd NUMERIC(10, 2),
+    
+    -- Offset tracking
+    is_offset BOOLEAN DEFAULT FALSE,
+    offset_project_id UUID REFERENCES conservation_projects(id),
+    offset_certificate_id VARCHAR(128),
+    
+    -- Travel type
+    trip_type VARCHAR(32) DEFAULT 'standard', -- 'standard', 'low_carbon', 'eco'
+    
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE INDEX idx_carbon_booking ON carbon_footprints(booking_id);
+CREATE INDEX idx_carbon_supplier ON carbon_footprints(supplier_id);
+CREATE INDEX idx_carbon_offset ON carbon_footprints(is_offset) WHERE is_offset = TRUE;
+
+-- Carbon emission factors
+CREATE TABLE IF NOT EXISTS carbon_emission_factors (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    
+    -- Factor info
+    transport_type VARCHAR(64) NOT NULL,
+    vehicle_type VARCHAR(64),
+    
+    -- Emission factor
+    emission_factor NUMERIC(10, 4) NOT NULL, -- kg CO2 per unit
+    unit VARCHAR(32) NOT NULL, -- 'km', 'hour', 'person-km'
+    
+    -- Source
+    source_name VARCHAR(128),
+    source_url VARCHAR(512),
+    last_updated DATE,
+    
+    is_active BOOLEAN DEFAULT TRUE,
+    
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Insert default emission factors
+INSERT INTO carbon_emission_factors (transport_type, vehicle_type, emission_factor, unit, source_name) VALUES
+('flight', 'economy_short', 0.255, 'person-km', 'ICAO'),
+('flight', 'economy_long', 0.195, 'person-km', 'ICAO'),
+('flight', 'business', 0.510, 'person-km', 'ICAO'),
+('car', 'petrol_small', 0.171, 'km', 'DEFRA'),
+('car', 'petrol_large', 0.222, 'km', 'DEFRA'),
+('car', 'diesel_small', 0.171, 'km', 'DEFRA'),
+('car', 'diesel_large', 0.222, 'km', 'DEFRA'),
+('car', 'electric', 0.053, 'km', 'DEFRA'),
+('train', 'electric', 0.041, 'person-km', 'DEFRA'),
+('train', 'diesel', 0.089, 'person-km', 'DEFRA'),
+('bus', 'diesel', 0.089, 'person-km', 'DEFRA'),
+('boat', 'ferry', 0.115, 'person-km', 'DEFRA'),
+('boat', 'cruise', 0.250, 'person-km', 'DEFRA')
+ON CONFLICT DO NOTHING;
+
+-- Wildlife protection initiatives
+CREATE TABLE IF NOT EXISTS wildlife_initiatives (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    
+    -- Initiative info
+    name VARCHAR(255) NOT NULL,
+    description TEXT,
+    initiative_type VARCHAR(64), -- 'anti_poaching', 'habitat', 'rescue', 'research'
+    
+    -- Location
+    location VARCHAR(255),
+    country VARCHAR(64),
+    
+    -- Species focus
+    target_species JSONB DEFAULT '[]',
+    species_list VARCHAR(255)[],
+    
+    -- Impact
+    animals_protected INT DEFAULT 0,
+    patrol_km INT DEFAULT 0,
+    arrests_made INT DEFAULT 0,
+    
+    -- Partners
+    partner_name VARCHAR(255),
+    partner_type VARCHAR(64), -- 'ngo', 'government', 'community'
+    
+    -- Status
+    status VARCHAR(32) DEFAULT 'active',
+    start_year INT,
+    
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE INDEX idx_wildlife_species ON wildlife_initiatives USING GIN(species_list);
+CREATE INDEX idx_wildlife_location ON wildlife_initiatives(country);
+CREATE INDEX idx_wildlife_type ON wildlife_initiatives(initiative_type);
+
+CREATE TRIGGER update_wildlife_updated_at
+    BEFORE UPDATE ON wildlife_initiatives
+    FOR EACH ROW
+    EXECUTE FUNCTION update_updated_at_column();
+
+-- Community impact tracking
+CREATE TABLE IF NOT EXISTS community_impacts (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    
+    -- Reference
+    supplier_id VARCHAR(64) NOT NULL,
+    
+    -- Impact type
+    impact_type VARCHAR(64) NOT NULL, -- 'employment', 'education', 'infrastructure', 'healthcare', 'arts'
+    project_name VARCHAR(255),
+    description TEXT,
+    
+    -- Beneficiaries
+    beneficiaries_count INT DEFAULT 0,
+    local_community_name VARCHAR(255),
+    
+    -- Investment
+    investment_usd NUMERIC(12, 2) DEFAULT 0,
+    in_kind_contribution TEXT,
+    
+    -- Ongoing
+    is_ongoing BOOLEAN DEFAULT FALSE,
+    
+    -- Metrics
+    metrics JSONB DEFAULT '{}',
+    
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE INDEX idx_community_supplier ON community_impacts(supplier_id);
+CREATE INDEX idx_community_type ON community_impacts(impact_type);
+
+CREATE TRIGGER update_community_updated_at
+    BEFORE UPDATE ON community_impacts
+    FOR EACH ROW
+    EXECUTE FUNCTION update_updated_at_column();
+
+-- Eco badge definitions
+CREATE TABLE IF NOT EXISTS eco_badge_definitions (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    
+    -- Badge info
+    badge_type eco_badge_type NOT NULL UNIQUE,
+    name VARCHAR(128) NOT NULL,
+    description TEXT,
+    icon VARCHAR(64),
+    
+    -- Criteria
+    criteria JSONB NOT NULL,
+    
+    -- Thresholds
+    min_overall_score INT DEFAULT 0,
+    min_category_score NUMERIC(5, 2) DEFAULT 0,
+    required_practices JSONB DEFAULT '[]',
+    prohibited_practices JSONB DEFAULT '[]',
+    
+    -- Display
+    color VARCHAR(7) DEFAULT '#10B981',
+    bg_color VARCHAR(7) DEFAULT 'rgba(16, 185, 129, 0.1)',
+    
+    is_active BOOLEAN DEFAULT TRUE,
+    sort_order INT DEFAULT 0,
+    
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Insert eco badge definitions
+INSERT INTO eco_badge_definitions (badge_type, name, description, icon, color, bg_color, min_overall_score, criteria, sort_order) VALUES
+(
+    'eco_certified',
+    'Eco Certified',
+    'Verified sustainable travel provider',
+    '🌿',
+    '#10B981',
+    'rgba(16, 185, 129, 0.1)',
+    70,
+    '{"min_overall_score": 70, "is_verified": true}',
+    1
+),
+(
+    'carbon_neutral',
+    'Carbon Neutral',
+    'Net zero carbon emissions',
+    '☁️',
+    '#06B6D4',
+    'rgba(6, 182, 212, 0.1)',
+    85,
+    '{"carbon_neutral": true, "min_carbon_score": 85}',
+    2
+),
+(
+    'community_support',
+    'Community Champion',
+    'Strong community investment and support',
+    '🤝',
+    '#8B5CF6',
+    'rgba(139, 92, 246, 0.1)',
+    65,
+    '{"min_community_score": 65, "min_community_investment": 1000}',
+    3
+),
+(
+    'wildlife_friendly',
+    'Wildlife Friendly',
+    'Verified wildlife protection practices',
+    '🦁',
+    '#F59E0B',
+    'rgba(245, 158, 11, 0.1)',
+    70,
+    '{"min_wildlife_score": 70, "anti_poaching_partnership": true}',
+    4
+),
+(
+    'green_partner',
+    'Green Partner',
+    'Environmentally responsible operations',
+    '♻️',
+    '#22C55E',
+    'rgba(34, 197, 94, 0.1)',
+    60,
+    '{"min_conservation_score": 60}',
+    5
+),
+(
+    'sustainable_leader',
+    'Sustainable Leader',
+    'Excellence in sustainable tourism',
+    '🏆',
+    '#EAB308',
+    'rgba(234, 179, 8, 0.1)',
+    90,
+    '{"min_overall_score": 90, "is_verified": true, "carbon_neutral": true}',
+    6
+),
+(
+    'plastic_free',
+    'Plastic Free',
+    'Committed to eliminating single-use plastics',
+    '🚫',
+    '#3B82F6',
+    'rgba(59, 130, 246, 0.1)',
+    50,
+    '{"plastic_free_initiatives": true}',
+    7
+),
+(
+    'renewable_energy',
+    'Renewable Energy',
+    'Powered by renewable energy sources',
+    '⚡',
+    '#FBBF24',
+    'rgba(251, 191, 36, 0.1)',
+    55,
+    '{"renewable_energy_usage": true, "min_percentage": 75}',
+    8
+),
+(
+    'waste_reducer',
+    'Waste Reducer',
+    'Excellent waste management and reduction',
+    '🗑️',
+    '#84CC16',
+    'rgba(132, 204, 22, 0.1)',
+    50,
+    '{"waste_reduction_program": true, "recycling_rate": 75}',
+    9
+),
+(
+    'water_saver',
+    'Water Saver',
+    'Responsible water management',
+    '💧',
+    '#0EA5E9',
+    'rgba(14, 165, 233, 0.1)',
+    50,
+    '{"water_conservation": true, "min_efficiency_score": 70}',
+    10
+)
+ON CONFLICT (badge_type) DO NOTHING;
+
+-- Sustainability filters for booking
+CREATE TYPE sustainability_filter AS ENUM (
+    'eco_certified',
+    'carbon_neutral',
+    'community_support',
+    'wildlife_friendly',
+    'local_sourcing',
+    'renewable_energy',
+    'plastic_free',
+    'low_carbon_transport'
+);
+
+-- =============================================================================
+-- END OF SUSTAINABILITY SYSTEM
+-- =============================================================================
