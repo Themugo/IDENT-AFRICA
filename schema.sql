@@ -1525,3 +1525,243 @@ CREATE INDEX idx_subscriptions_active ON email_subscriptions(subscribed) WHERE s
 -- =============================================================================
 -- END OF NOTIFICATIONS
 -- =============================================================================
+
+-- =============================================================================
+-- COMMUNICATION CENTER
+-- Centralized communication with workflow triggers
+-- =============================================================================
+
+-- Conversation types
+CREATE TYPE conversation_type AS ENUM (
+    'customer_admin',
+    'customer_supplier',
+    'supplier_admin',
+    'support',
+    'booking_inquiry',
+    'booking_chat'
+);
+
+-- Conversation status
+CREATE TYPE conversation_status AS ENUM (
+    'active',
+    'resolved',
+    'archived',
+    'pending'
+);
+
+-- Dedicated conversations table
+CREATE TABLE IF NOT EXISTS conversations (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    
+    -- Conversation identification
+    conversation_type conversation_type NOT NULL,
+    conversation_code VARCHAR(64) UNIQUE NOT NULL,
+    
+    -- Participants (for quick reference)
+    participant_a_id VARCHAR(64),
+    participant_a_type VARCHAR(32), -- 'customer', 'supplier', 'admin'
+    participant_a_name VARCHAR(255),
+    
+    participant_b_id VARCHAR(64),
+    participant_b_type VARCHAR(32),
+    participant_b_name VARCHAR(255),
+    
+    -- Subject/topic
+    subject VARCHAR(255),
+    
+    -- Related entity
+    related_entity_type VARCHAR(64), -- 'booking', 'payment', 'product'
+    related_entity_id VARCHAR(128),
+    
+    -- Status
+    status conversation_status DEFAULT 'active',
+    
+    -- Last activity
+    last_message_at TIMESTAMP WITH TIME ZONE,
+    last_message_preview TEXT,
+    
+    -- Counts
+    unread_count_a INT DEFAULT 0,
+    unread_count_b INT DEFAULT 0,
+    
+    -- Resolution
+    resolved_at TIMESTAMP WITH TIME ZONE,
+    resolved_by VARCHAR(64),
+    resolution_note TEXT,
+    
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE INDEX idx_conversations_code ON conversations(conversation_code);
+CREATE INDEX idx_conversations_type ON conversations(conversation_type);
+CREATE INDEX idx_conversations_status ON conversations(status);
+CREATE INDEX idx_conversations_participant_a ON conversations(participant_a_id, participant_a_type);
+CREATE INDEX idx_conversations_participant_b ON conversations(participant_b_id, participant_b_type);
+CREATE INDEX idx_conversations_related ON conversations(related_entity_type, related_entity_id);
+CREATE INDEX idx_conversations_updated ON conversations(updated_at DESC);
+CREATE INDEX idx_conversations_last_message ON conversations(last_message_at DESC);
+
+CREATE TRIGGER update_conversations_updated_at
+    BEFORE UPDATE ON conversations
+    FOR EACH ROW
+    EXECUTE FUNCTION update_updated_at_column();
+
+-- Communication workflow triggers
+CREATE TYPE workflow_trigger_type AS ENUM (
+    'booking_created',
+    'booking_confirmed',
+    'booking_cancelled',
+    'payment_received',
+    'payment_failed',
+    'travel_reminder',
+    'check_in_reminder',
+    'review_request',
+    'refund_initiated',
+    'refund_completed'
+);
+
+-- Communication workflow status
+CREATE TYPE workflow_status AS ENUM (
+    'pending',
+    'processing',
+    'completed',
+    'failed',
+    'skipped'
+);
+
+-- Communication workflow triggers
+CREATE TABLE IF NOT EXISTS communication_workflows (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    
+    -- Trigger information
+    trigger_type workflow_trigger_type NOT NULL,
+    trigger_entity_type VARCHAR(64) NOT NULL, -- 'booking', 'payment'
+    trigger_entity_id VARCHAR(128) NOT NULL,
+    
+    -- Channel configuration
+    channels JSONB NOT NULL DEFAULT '["email"]', -- ["email", "sms", "whatsapp", "push"]
+    
+    -- Recipients
+    recipient_id VARCHAR(64) NOT NULL,
+    recipient_type VARCHAR(32) NOT NULL, -- 'customer', 'supplier', 'admin'
+    recipient_email VARCHAR(255),
+    recipient_phone VARCHAR(32),
+    
+    -- Message content
+    subject VARCHAR(255),
+    message_template VARCHAR(64), -- Reference to template
+    message_variables JSONB DEFAULT '{}',
+    
+    -- Notification records
+    notifications JSONB DEFAULT '[]', -- Array of notification IDs created
+    
+    -- Status
+    status workflow_status DEFAULT 'pending',
+    status_details TEXT,
+    attempts INT DEFAULT 0,
+    last_attempt_at TIMESTAMP WITH TIME ZONE,
+    
+    -- Scheduling
+    scheduled_for TIMESTAMP WITH TIME ZONE,
+    executed_at TIMESTAMP WITH TIME ZONE,
+    
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE INDEX idx_workflows_trigger ON communication_workflows(trigger_type, trigger_entity_type, trigger_entity_id);
+CREATE INDEX idx_workflows_recipient ON communication_workflows(recipient_id, recipient_type);
+CREATE INDEX idx_workflows_status ON communication_workflows(status);
+CREATE INDEX idx_workflows_scheduled ON communication_workflows(scheduled_for) WHERE status = 'pending';
+
+CREATE TRIGGER update_workflows_updated_at
+    BEFORE UPDATE ON communication_workflows
+    FOR EACH ROW
+    EXECUTE FUNCTION update_updated_at_column();
+
+-- Update messages table to reference conversations
+ALTER TABLE messages 
+ADD COLUMN IF NOT EXISTS conversation_id VARCHAR(64),
+ADD COLUMN IF NOT EXISTS is_system_message BOOLEAN DEFAULT FALSE;
+
+-- Create index on messages for conversation lookup
+CREATE INDEX IF NOT EXISTS idx_messages_conversation_new ON messages(conversation_id);
+
+-- Communication channel preferences (per user)
+CREATE TABLE IF NOT EXISTS communication_preferences (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    
+    -- User
+    user_id VARCHAR(64) NOT NULL,
+    user_type VARCHAR(32) NOT NULL, -- 'customer', 'supplier', 'admin'
+    
+    -- Channel preferences
+    email_enabled BOOLEAN DEFAULT TRUE,
+    sms_enabled BOOLEAN DEFAULT FALSE,
+    whatsapp_enabled BOOLEAN DEFAULT TRUE,
+    push_enabled BOOLEAN DEFAULT TRUE,
+    
+    -- Notification type preferences
+    booking_updates BOOLEAN DEFAULT TRUE,
+    payment_alerts BOOLEAN DEFAULT TRUE,
+    promotional_messages BOOLEAN DEFAULT FALSE,
+    travel_reminders BOOLEAN DEFAULT TRUE,
+    system_alerts BOOLEAN DEFAULT TRUE,
+    
+    -- Quiet hours
+    quiet_hours_enabled BOOLEAN DEFAULT FALSE,
+    quiet_hours_start TIME,
+    quiet_hours_end TIME,
+    quiet_hours_timezone VARCHAR(32) DEFAULT 'UTC',
+    
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    
+    CONSTRAINT unique_user_preferences UNIQUE (user_id, user_type)
+);
+
+CREATE INDEX idx_preferences_user ON communication_preferences(user_id, user_type);
+
+CREATE TRIGGER update_preferences_updated_at
+    BEFORE UPDATE ON communication_preferences
+    FOR EACH ROW
+    EXECUTE FUNCTION update_updated_at_column();
+
+-- Communication templates for workflows
+CREATE TABLE IF NOT EXISTS communication_templates (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    
+    -- Template identification
+    name VARCHAR(128) NOT NULL UNIQUE,
+    trigger_type workflow_trigger_type,
+    channel notification_channel NOT NULL,
+    
+    -- Template content
+    subject_template VARCHAR(255),
+    body_template TEXT NOT NULL,
+    variables JSONB DEFAULT '[]',
+    
+    -- Settings
+    is_active BOOLEAN DEFAULT TRUE,
+    priority INT DEFAULT 0,
+    
+    -- Channels this template applies to
+    applies_to JSONB DEFAULT '["email"]',
+    
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE INDEX idx_templates_trigger ON communication_templates(trigger_type);
+CREATE INDEX idx_templates_channel ON communication_templates(channel);
+CREATE INDEX idx_templates_active ON communication_templates(is_active);
+
+CREATE TRIGGER update_communication_templates_updated_at
+    BEFORE UPDATE ON communication_templates
+    FOR EACH ROW
+    EXECUTE FUNCTION update_updated_at_column();
+
+-- =============================================================================
+-- END OF COMMUNICATION CENTER
+-- =============================================================================

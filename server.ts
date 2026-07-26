@@ -25,6 +25,7 @@ import pricingRouter from './src/routes/pricing.js';
 import searchRouter from './src/routes/search.js';
 import inventoryRouter from './src/routes/inventory.js';
 import notificationsRouter from './src/routes/notifications.js';
+import communicationRouter from './src/routes/communication.js';
 
 dotenv.config();
 
@@ -160,6 +161,7 @@ async function startServer() {
   app.use('/api/search', searchRouter);
   app.use('/api/inventory', inventoryRouter);
   app.use('/api/notifications', notificationsRouter);
+  app.use('/api/communication', communicationRouter);
 
   // API Route: Live Exchange Rates
   app.get('/api/exchange-rates', async (_req, res) => {
