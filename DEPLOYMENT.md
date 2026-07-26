@@ -21,6 +21,43 @@ IDENT AFRICA uses a **monolithic server architecture**:
 
 ---
 
+## Build & Optimization
+
+### Local Build Test
+```bash
+# Install dependencies
+npm install
+
+# Build frontend
+npm run build
+
+# Preview production build
+npm run preview
+
+# Full build with server
+npm run build:full
+```
+
+### Build Output Structure
+```
+dist/
+├── assets/
+│   ├── js/          # JavaScript chunks
+│   ├── images/       # Optimized images
+│   └── fonts/        # Font files
+├── index.html
+└── ...other assets
+```
+
+### Bundle Optimization
+The build automatically:
+- Code splits vendor libraries (React, Motion, Icons, PDF)
+- Hashes assets for cache busting
+- Minifies code in production
+- Removes console.log/debugger in production
+
+---
+
 ## Option 1: Vercel Deployment (Recommended)
 
 ### Prerequisites
@@ -42,16 +79,27 @@ vercel link
 ### Step 2: Configure Environment Variables
 In Vercel Dashboard → Settings → Environment Variables:
 
+**Required for All Environments:**
 | Variable | Value | Required |
 |----------|-------|----------|
 | `NODE_ENV` | `production` | Yes |
+| `NEXT_PUBLIC_APP_ENV` | `production` | Yes |
+
+**Required for Production:**
+| Variable | Value | Required |
+|----------|-------|----------|
 | `GEMINI_API_KEY` | Your API key | Yes |
 | `JWT_SECRET` | Random 64-char string | Yes |
+| `SESSION_SECRET` | Random 64-char string | Yes |
 | `ALLOWED_ORIGINS` | `yourdomain.com` | Yes |
-| `DATABASE_URL` | PostgreSQL connection string | No (uses mock data) |
+| `DATABASE_URL` | PostgreSQL connection string | No (mock data) |
 
-Generate JWT secret:
+Generate secrets:
 ```bash
+# Generate JWT secret
+openssl rand -base64 64
+
+# Generate session secret
 openssl rand -base64 64
 ```
 
@@ -62,12 +110,29 @@ vercel
 
 # Deploy to production
 vercel --prod
+
+# Or use Git integration (auto-deploy on push)
 ```
 
 ### Step 4: Custom Domain (Optional)
 1. Go to Vercel Dashboard → Settings → Domains
 2. Add your domain (e.g., `identafrica.com`)
 3. Update DNS records as instructed
+
+### SPA Routing
+Vercel is configured for SPA (Single Page Application) routing:
+- All routes redirect to `/dist/index.html`
+- Client-side routing handles navigation
+- API routes are handled by Express server
+
+### Environment Variable Reference
+
+| Variable | Description | Required |
+|----------|-------------|----------|
+| `NEXT_PUBLIC_APP_URL` | Public app URL | Yes |
+| `NEXT_PUBLIC_API_URL` | API endpoint | Yes |
+| `NEXT_PUBLIC_GEMINI_API_KEY` | AI API key | Yes |
+| `DATABASE_URL` | PostgreSQL | No |
 
 ---
 
