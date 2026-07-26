@@ -1,0 +1,1 @@
+export { QualityCenter } from './QualityCenter';

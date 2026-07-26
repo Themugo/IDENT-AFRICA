@@ -28,6 +28,7 @@ import notificationsRouter from './src/routes/notifications.js';
 import communicationRouter from './src/routes/communication.js';
 import documentsRouter from './src/routes/documents.js';
 import loyaltyRouter from './src/routes/loyalty.js';
+import qualityRouter from './src/routes/quality.js';
 
 dotenv.config();
 
@@ -166,6 +167,7 @@ async function startServer() {
   app.use('/api/communication', communicationRouter);
   app.use('/api/documents', documentsRouter);
   app.use('/api/loyalty', loyaltyRouter);
+  app.use('/api/quality', qualityRouter);
 
   // API Route: Live Exchange Rates
   app.get('/api/exchange-rates', async (_req, res) => {

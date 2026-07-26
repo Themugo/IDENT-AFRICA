@@ -2488,3 +2488,341 @@ ON CONFLICT DO NOTHING;
 -- =============================================================================
 -- END OF LOYALTY PROGRAM
 -- =============================================================================
+
+-- =============================================================================
+-- SUPPLIER QUALITY SCORING SYSTEM
+-- Supplier performance tracking and badge assignment
+-- =============================================================================
+
+-- Badge types
+CREATE TYPE badge_type AS ENUM (
+    'verified_luxury',
+    'top_safari',
+    'eco_champion',
+    'super_host',
+    'rising_star',
+    'premium_partner',
+    'trusted_supplier',
+    'excellence_award'
+);
+
+-- Supplier quality scores
+CREATE TABLE IF NOT EXISTS supplier_quality_scores (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    
+    -- Supplier reference
+    supplier_id VARCHAR(64) NOT NULL UNIQUE,
+    
+    -- Overall score (0-100)
+    overall_score NUMERIC(5, 2) DEFAULT 0,
+    score_grade VARCHAR(2), -- A+, A, A-, B+, B, B-, C, D
+    
+    -- Individual metrics (0-100 each)
+    rating_score NUMERIC(5, 2) DEFAULT 0, -- Customer ratings
+    response_time_score NUMERIC(5, 2) DEFAULT 0, -- Response time metric
+    completion_rate_score NUMERIC(5, 2) DEFAULT 0, -- Booking completion
+    satisfaction_score NUMERIC(5, 2) DEFAULT 0, -- Customer satisfaction
+    cancellation_rate_score NUMERIC(5, 2) DEFAULT 100, -- Inverse (100 = no cancellations)
+    
+    -- Metrics breakdown
+    total_ratings INT DEFAULT 0,
+    average_rating NUMERIC(3, 2) DEFAULT 0,
+    avg_response_time_minutes INT DEFAULT 0,
+    booking_completion_rate NUMERIC(5, 2) DEFAULT 0,
+    customer_satisfaction_rate NUMERIC(5, 2) DEFAULT 0,
+    cancellation_rate NUMERIC(5, 2) DEFAULT 0,
+    
+    -- Counts
+    total_bookings INT DEFAULT 0,
+    completed_bookings INT DEFAULT 0,
+    cancelled_bookings INT DEFAULT 0,
+    total_responses INT DEFAULT 0,
+    
+    -- Badges earned
+    badges badge_type[] DEFAULT '{}',
+    primary_badge badge_type,
+    
+    -- Period tracking
+    period_start DATE DEFAULT CURRENT_DATE,
+    period_end DATE,
+    
+    -- Last updated
+    last_calculated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE INDEX idx_quality_supplier ON supplier_quality_scores(supplier_id);
+CREATE INDEX idx_quality_score ON supplier_quality_scores(overall_score DESC);
+CREATE INDEX idx_quality_badges ON supplier_quality_scores USING GIN(badges);
+
+CREATE TRIGGER update_quality_updated_at
+    BEFORE UPDATE ON supplier_quality_scores
+    FOR EACH ROW
+    EXECUTE FUNCTION update_updated_at_column();
+
+-- Quality metrics history
+CREATE TABLE IF NOT EXISTS quality_metrics_history (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    
+    -- Supplier reference
+    supplier_id VARCHAR(64) NOT NULL,
+    
+    -- Metric type
+    metric_type VARCHAR(64) NOT NULL, -- 'rating', 'response_time', 'completion', 'satisfaction', 'cancellation'
+    
+    -- Values
+    value NUMERIC(10, 4) NOT NULL,
+    previous_value NUMERIC(10, 4),
+    
+    -- Booking reference (if applicable)
+    booking_id VARCHAR(128),
+    
+    -- Period
+    recorded_date DATE DEFAULT CURRENT_DATE,
+    
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE INDEX idx_metrics_history_supplier ON quality_metrics_history(supplier_id);
+CREATE INDEX idx_metrics_history_type ON quality_metrics_history(metric_type);
+CREATE INDEX idx_metrics_history_date ON quality_metrics_history(recorded_date DESC);
+
+-- Badge definitions
+CREATE TABLE IF NOT EXISTS badge_definitions (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    
+    -- Badge info
+    badge_type badge_type NOT NULL UNIQUE,
+    name VARCHAR(128) NOT NULL,
+    description TEXT,
+    icon VARCHAR(64), -- Icon name or emoji
+    
+    -- Criteria
+    criteria JSONB NOT NULL, -- JSON criteria for earning badge
+    
+    -- Requirements example:
+    -- {
+    --   "verified_luxury": {
+    --     "min_overall_score": 90,
+    --     "min_rating": 4.8,
+    --     "required_badges": ["trusted_supplier"]
+    --   }
+    -- }
+    
+    -- Thresholds
+    min_overall_score INT DEFAULT 0,
+    min_rating NUMERIC(3, 2) DEFAULT 0,
+    min_completion_rate NUMERIC(5, 2) DEFAULT 0,
+    max_cancellation_rate NUMERIC(5, 2) DEFAULT 100,
+    min_bookings INT DEFAULT 0,
+    min_responses INT DEFAULT 0,
+    
+    -- Display
+    color VARCHAR(7) DEFAULT '#C89A4B',
+    bg_color VARCHAR(7) DEFAULT 'rgba(200, 154, 75, 0.1)',
+    
+    is_active BOOLEAN DEFAULT TRUE,
+    sort_order INT DEFAULT 0,
+    
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Insert default badge definitions
+INSERT INTO badge_definitions (badge_type, name, description, icon, color, bg_color, min_overall_score, min_rating, min_completion_rate, max_cancellation_rate, min_bookings, sort_order, criteria) VALUES
+(
+    'trusted_supplier',
+    'Trusted Supplier',
+    'Consistently high performance with excellent reviews',
+    '✅',
+    '#22C55E',
+    'rgba(34, 197, 94, 0.1)',
+    75, 4.0, 90, 5, 20, 1,
+    '{"min_overall_score": 75, "min_rating": 4.0, "min_completion_rate": 90, "max_cancellation_rate": 5}'
+),
+(
+    'verified_luxury',
+    'Verified Luxury Partner',
+    'Premium service meeting luxury standards',
+    '💎',
+    '#8B5CF6',
+    'rgba(139, 92, 246, 0.1)',
+    90, 4.8, 95, 2, 50, 2,
+    '{"min_overall_score": 90, "min_rating": 4.8, "min_completion_rate": 95, "max_cancellation_rate": 2}'
+),
+(
+    'top_safari',
+    'Top Safari Provider',
+    'Top-rated safari and wildlife experience provider',
+    '🦁',
+    '#F59E0B',
+    'rgba(245, 158, 11, 0.1)',
+    80, 4.5, 85, 8, 30, 3,
+    '{"min_overall_score": 80, "min_rating": 4.5, "category": "safari"}'
+),
+(
+    'eco_champion',
+    'Eco Champion',
+    'Recognized for sustainable and eco-friendly practices',
+    '🌿',
+    '#10B981',
+    'rgba(16, 185, 129, 0.1)',
+    70, 4.0, 85, 10, 15, 4,
+    '{"min_overall_score": 70, "sustainable_practices": true}'
+),
+(
+    'super_host',
+    'Super Host',
+    'Exceptional host with outstanding hospitality',
+    '⭐',
+    '#FBBF24',
+    'rgba(251, 191, 36, 0.1)',
+    95, 4.9, 98, 1, 100, 5,
+    '{"min_overall_score": 95, "min_rating": 4.9, "min_completion_rate": 98, "max_cancellation_rate": 1, "min_bookings": 100}'
+),
+(
+    'rising_star',
+    'Rising Star',
+    'New supplier showing excellent potential',
+    '🌟',
+    '#3B82F6',
+    'rgba(59, 130, 246, 0.1)',
+    65, 4.2, 80, 10, 5, 6,
+    '{"min_overall_score": 65, "min_rating": 4.2, "min_bookings": 5, "max_age_days": 180}'
+),
+(
+    'premium_partner',
+    'Premium Partner',
+    'Exclusive partner with premium services',
+    '👑',
+    '#EC4899',
+    'rgba(236, 72, 153, 0.1)',
+    88, 4.7, 93, 3, 75, 7,
+    '{"min_overall_score": 88, "min_rating": 4.7, "min_completion_rate": 93, "max_cancellation_rate": 3, "min_bookings": 75}'
+),
+(
+    'excellence_award',
+    'Excellence Award',
+    'Highest achievement in service excellence',
+    '🏆',
+    '#DC2626',
+    'rgba(220, 38, 38, 0.1)',
+    98, 5.0, 99, 0.5, 200, 8,
+    '{"min_overall_score": 98, "min_rating": 5.0, "min_completion_rate": 99, "max_cancellation_rate": 0.5, "min_bookings": 200}'
+)
+ON CONFLICT (badge_type) DO NOTHING;
+
+-- Supplier rating reviews
+CREATE TABLE IF NOT EXISTS supplier_ratings (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    
+    -- Supplier and booking
+    supplier_id VARCHAR(64) NOT NULL,
+    booking_id VARCHAR(128) NOT NULL,
+    customer_id VARCHAR(64) NOT NULL,
+    
+    -- Overall rating (1-5)
+    overall_rating INT CHECK (overall_rating >= 1 AND overall_rating <= 5),
+    
+    -- Individual aspects (1-5)
+    service_rating INT CHECK (service_rating >= 1 AND service_rating <= 5),
+    value_rating INT CHECK (value_rating >= 1 AND value_rating <= 5),
+    cleanliness_rating INT CHECK (cleanliness_rating >= 1 AND cleanliness_rating <= 5),
+    location_rating INT CHECK (location_rating >= 1 AND location_rating <= 5),
+    communication_rating INT CHECK (communication_rating >= 1 AND communication_rating <= 5),
+    
+    -- Review
+    review_text TEXT,
+    is_public BOOLEAN DEFAULT TRUE,
+    
+    -- Response from supplier
+    supplier_response TEXT,
+    responded_at TIMESTAMP WITH TIME ZONE,
+    
+    -- Status
+    status VARCHAR(32) DEFAULT 'pending', -- 'pending', 'approved', 'rejected', 'hidden'
+    
+    -- Verified stay
+    is_verified_stay BOOLEAN DEFAULT FALSE,
+    
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE INDEX idx_ratings_supplier ON supplier_ratings(supplier_id);
+CREATE INDEX idx_ratings_booking ON supplier_ratings(booking_id);
+CREATE INDEX idx_ratings_customer ON supplier_ratings(customer_id);
+CREATE INDEX idx_ratings_status ON supplier_ratings(status);
+
+CREATE TRIGGER update_ratings_updated_at
+    BEFORE UPDATE ON supplier_ratings
+    FOR EACH ROW
+    EXECUTE FUNCTION update_updated_at_column();
+
+-- Response time tracking
+CREATE TABLE IF NOT EXISTS response_time_logs (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    
+    -- Supplier reference
+    supplier_id VARCHAR(64) NOT NULL,
+    
+    -- Inquiry/booking
+    inquiry_type VARCHAR(64) NOT NULL, -- 'booking_inquiry', 'booking_request', 'message', 'support'
+    related_id VARCHAR(128), -- booking_id or inquiry_id
+    
+    -- Timing
+    inquiry_received_at TIMESTAMP WITH TIME ZONE NOT NULL,
+    first_response_at TIMESTAMP WITH TIME ZONE,
+    response_time_minutes INT,
+    
+    -- Status
+    responded BOOLEAN DEFAULT FALSE,
+    
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE INDEX idx_response_supplier ON response_time_logs(supplier_id);
+CREATE INDEX idx_response_date ON response_time_logs(inquiry_received_at DESC);
+
+-- Quality alerts
+CREATE TABLE IF NOT EXISTS quality_alerts (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    
+    -- Supplier reference
+    supplier_id VARCHAR(64) NOT NULL,
+    
+    -- Alert info
+    alert_type VARCHAR(64) NOT NULL, -- 'low_rating', 'slow_response', 'high_cancellation', 'complaint'
+    severity VARCHAR(32) DEFAULT 'info', -- 'info', 'warning', 'critical'
+    
+    -- Details
+    title VARCHAR(255),
+    description TEXT,
+    metric_affected VARCHAR(64),
+    current_value NUMERIC(10, 4),
+    threshold_value NUMERIC(10, 4),
+    
+    -- Resolution
+    status VARCHAR(32) DEFAULT 'open', -- 'open', 'acknowledged', 'resolved', 'dismissed'
+    resolved_by VARCHAR(64),
+    resolved_at TIMESTAMP WITH TIME ZONE,
+    resolution_note TEXT,
+    
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE INDEX idx_alerts_supplier ON quality_alerts(supplier_id);
+CREATE INDEX idx_alerts_status ON quality_alerts(status);
+CREATE INDEX idx_alerts_severity ON quality_alerts(severity);
+
+CREATE TRIGGER update_alerts_updated_at
+    BEFORE UPDATE ON quality_alerts
+    FOR EACH ROW
+    EXECUTE FUNCTION update_updated_at_column();
+
+-- =============================================================================
+-- END OF SUPPLIER QUALITY SCORING
+-- =============================================================================
