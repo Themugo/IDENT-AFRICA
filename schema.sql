@@ -4706,3 +4706,255 @@ CREATE INDEX idx_webhook_processed ON webhook_logs(processed, created_at DESC);
 -- =============================================================================
 -- END OF PAYMENT SECURITY SYSTEM
 -- =============================================================================
+-- =============================================================================
+-- CONTENT MIGRATION SYSTEM
+-- Content status, ownership, and migration tools
+-- =============================================================================
+
+-- Content ownership types
+CREATE TYPE content_ownership AS ENUM (
+    'system',    -- Default content created by system
+    'admin',     -- Content created by admin users
+    'supplier'   -- Content created by suppliers
+);
+
+-- Content status
+CREATE TYPE content_status AS ENUM (
+    'default',   -- Pre-loaded default content
+    'draft',     -- Under review/not published
+    'published', -- Live and visible
+    'archived'  -- Hidden but retained
+);
+
+-- Add columns to existing tables for content status and ownership
+-- These will be added via ALTER TABLE in migration
+
+-- Content migration history
+CREATE TABLE IF NOT EXISTS content_migrations (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    
+    -- Migration info
+    migration_type VARCHAR(64) NOT NULL, -- 'import', 'bulk_edit', 'publish', 'unpublish', 'replace_images', 'ownership_change'
+    description TEXT,
+    
+    -- Scope
+    content_type VARCHAR(64) NOT NULL, -- 'destinations', 'packages', 'experiences', 'media'
+    affected_ids JSONB DEFAULT '[]', -- Array of affected content IDs
+    
+    -- Performed by
+    performed_by VARCHAR(64), -- User ID or 'system'
+    performed_role user_role,
+    
+    -- Statistics
+    items_processed INT DEFAULT 0,
+    items_succeeded INT DEFAULT 0,
+    items_failed INT DEFAULT 0,
+    
+    -- Status
+    status VARCHAR(32) DEFAULT 'pending', -- 'pending', 'in_progress', 'completed', 'failed'
+    error_message TEXT,
+    
+    -- Configuration
+    config JSONB DEFAULT '{}', -- Migration-specific configuration
+    
+    -- Timing
+    started_at TIMESTAMP WITH TIME ZONE,
+    completed_at TIMESTAMP WITH TIME ZONE,
+    
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE INDEX idx_migrations_type ON content_migrations(migration_type);
+CREATE INDEX idx_migrations_status ON content_migrations(status);
+CREATE INDEX idx_migrations_performed ON content_migrations(performed_by);
+CREATE INDEX idx_migrations_created ON content_migrations(created_at DESC);
+
+-- Content version history (for tracking changes)
+CREATE TABLE IF NOT EXISTS content_versions (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    
+    -- Content reference
+    content_type VARCHAR(64) NOT NULL, -- 'destinations', 'packages', 'experiences'
+    content_id VARCHAR(128) NOT NULL,
+    
+    -- Version info
+    version_number INT NOT NULL,
+    
+    -- Who and what
+    modified_by VARCHAR(64),
+    modification_type VARCHAR(32) NOT NULL, -- 'create', 'update', 'publish', 'unpublish', 'archive'
+    
+    -- Snapshot
+    content_snapshot JSONB NOT NULL, -- Full content at this version
+    
+    -- Change details
+    changes_summary TEXT, -- Human-readable summary of changes
+    
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    
+    UNIQUE(content_type, content_id, version_number)
+);
+
+CREATE INDEX idx_versions_content ON content_versions(content_type, content_id);
+CREATE INDEX idx_versions_created ON content_versions(created_at DESC);
+
+-- Content replacement mapping (for image/content replacement)
+CREATE TABLE IF NOT EXISTS content_replacement_map (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    
+    -- Replacement info
+    content_type VARCHAR(64) NOT NULL,
+    content_id VARCHAR(128) NOT NULL,
+    
+    -- What to replace
+    field_name VARCHAR(64) NOT NULL, -- 'image_url', 'gallery', etc.
+    old_value TEXT NOT NULL,
+    old_value_hash VARCHAR(64) NOT NULL, -- For quick lookup
+    
+    -- Replacement
+    new_value TEXT NOT NULL,
+    new_value_hash VARCHAR(64),
+    
+    -- Status
+    is_applied BOOLEAN DEFAULT FALSE,
+    applied_at TIMESTAMP WITH TIME ZONE,
+    applied_by VARCHAR(64),
+    
+    -- Migration reference
+    migration_id UUID REFERENCES content_migrations(id) ON DELETE SET NULL,
+    
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE INDEX idx_replacement_content ON content_replacement_map(content_type, content_id);
+CREATE INDEX idx_replacement_old_hash ON content_replacement_map(old_value_hash);
+CREATE INDEX idx_replacement_applied ON content_replacement_map(is_applied) WHERE is_applied = FALSE;
+
+-- Bulk content operations log
+CREATE TABLE IF NOT EXISTS bulk_operations (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    
+    -- Operation info
+    operation_type VARCHAR(64) NOT NULL, -- 'bulk_publish', 'bulk_unpublish', 'bulk_archive', 'bulk_delete', 'bulk_status_change'
+    
+    -- Filters (what was selected)
+    filters JSONB DEFAULT '{}', -- Criteria used to select content
+    
+    -- Selection
+    selected_ids JSONB NOT NULL, -- IDs selected for operation
+    total_selected INT NOT NULL,
+    
+    -- Results
+    results JSONB DEFAULT '{}', -- Success/failure per item
+    
+    -- Performed by
+    performed_by VARCHAR(64),
+    performed_role user_role,
+    
+    -- Status
+    status VARCHAR(32) DEFAULT 'pending',
+    processed_count INT DEFAULT 0,
+    success_count INT DEFAULT 0,
+    failure_count INT DEFAULT 0,
+    
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    completed_at TIMESTAMP WITH TIME ZONE
+);
+
+CREATE INDEX idx_bulk_ops_type ON bulk_operations(operation_type);
+CREATE INDEX idx_bulk_ops_status ON bulk_operations(status);
+CREATE INDEX idx_bulk_ops_performed ON bulk_operations(performed_by);
+
+-- Content ownership transfer log
+CREATE TABLE IF NOT EXISTS ownership_transfers (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    
+    -- Content info
+    content_type VARCHAR(64) NOT NULL,
+    content_id VARCHAR(128) NOT NULL,
+    
+    -- Transfer details
+    previous_owner_type content_ownership,
+    previous_owner_id VARCHAR(64),
+    new_owner_type content_ownership NOT NULL,
+    new_owner_id VARCHAR(64) NOT NULL,
+    
+    -- Reason
+    transfer_reason TEXT,
+    
+    -- Migration reference
+    migration_id UUID REFERENCES content_migrations(id) ON DELETE SET NULL,
+    
+    -- Performed by
+    performed_by VARCHAR(64) NOT NULL,
+    
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE INDEX idx_transfers_content ON ownership_transfers(content_type, content_id);
+CREATE INDEX idx_transfers_new_owner ON ownership_transfers(new_owner_id);
+CREATE INDEX idx_transfers_created ON ownership_transfers(created_at DESC);
+
+-- Default content registry (tracks what's pre-loaded)
+CREATE TABLE IF NOT EXISTS default_content_registry (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    
+    -- Content info
+    content_type VARCHAR(64) NOT NULL,
+    content_id VARCHAR(128) NOT NULL UNIQUE,
+    
+    -- Original data (for reference/replacement)
+    original_data JSONB NOT NULL,
+    
+    -- Replacement tracking
+    replacement_mappings JSONB DEFAULT '[]', -- Array of replacement URLs
+    
+    -- Status
+    is_active BOOLEAN DEFAULT TRUE,
+    can_be_modified BOOLEAN DEFAULT FALSE, -- Some default content should not be modified
+    show_in_migration BOOLEAN DEFAULT TRUE, -- Show in admin migration tools
+    
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE INDEX idx_registry_type ON default_content_registry(content_type);
+CREATE INDEX idx_registry_active ON default_content_registry(is_active) WHERE is_active = TRUE;
+
+-- Insert existing destinations as default content
+INSERT INTO default_content_registry (content_type, content_id, original_data, is_active, can_be_modified, show_in_migration)
+SELECT 'destinations', id::text, row_to_json(d)::jsonb, TRUE, FALSE, TRUE
+FROM destinations d
+WHERE name IN ('Serengeti', 'Masai Mara', 'Kruger National Park', 'Ngorongoro Crater', 'Mount Kilimanjaro')
+ON CONFLICT (content_id) DO NOTHING;
+
+-- =============================================================================
+-- END OF CONTENT MIGRATION SYSTEM
+-- =============================================================================
+
+-- =============================================================================
+-- SCHEMA MIGRATIONS (Run these separately)
+-- =============================================================================
+
+-- Add content_status and ownership to destinations
+-- ALTER TABLE destinations ADD COLUMN IF NOT EXISTS content_status content_status DEFAULT 'published';
+-- ALTER TABLE destinations ADD COLUMN IF NOT EXISTS ownership_type content_ownership DEFAULT 'system';
+-- ALTER TABLE destinations ADD COLUMN IF NOT EXISTS created_by VARCHAR(64);
+-- ALTER TABLE destinations ADD COLUMN IF NOT EXISTS last_modified_by VARCHAR(64);
+
+-- Add content_status and ownership to packages
+-- ALTER TABLE packages ADD COLUMN IF NOT EXISTS content_status content_status DEFAULT 'published';
+-- ALTER TABLE packages ADD COLUMN IF NOT EXISTS ownership_type content_ownership DEFAULT 'system';
+-- ALTER TABLE packages ADD COLUMN IF NOT EXISTS created_by VARCHAR(64);
+-- ALTER TABLE packages ADD COLUMN IF NOT EXISTS last_modified_by VARCHAR(64);
+
+-- Add content_status and ownership to experiences
+-- ALTER TABLE experiences ADD COLUMN IF NOT EXISTS content_status content_status DEFAULT 'published';
+-- ALTER TABLE experiences ADD COLUMN IF NOT EXISTS ownership_type content_ownership DEFAULT 'system';
+-- ALTER TABLE experiences ADD COLUMN IF NOT EXISTS created_by VARCHAR(64);
+-- ALTER TABLE experiences ADD COLUMN IF NOT EXISTS last_modified_by VARCHAR(64);
+
+-- Add indexes for content status filtering
+-- CREATE INDEX idx_destinations_status ON destinations(content_status);
+-- CREATE INDEX idx_packages_status ON packages(content_status);
+-- CREATE INDEX idx_experiences_status ON experiences(content_status);
