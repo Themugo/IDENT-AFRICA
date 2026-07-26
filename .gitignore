@@ -4,6 +4,7 @@ node_modules/
 # Build outputs
 dist/
 build/
+.next/
 
 # Coverage
 coverage/
@@ -12,6 +13,7 @@ coverage/
 .env
 .env.local
 .env.production
+.env.development
 .env.*.local
 !.env.example
 
@@ -25,19 +27,40 @@ yarn-error.log*
 # OS files
 .DS_Store
 Thumbs.db
+._*
 
 # IDE
 .idea/
 .vscode/
 *.swp
 *.swo
+*.orig
 
 # Local development
 .vercel/
 .turbo/
+.cache/
 
 # TypeScript
 *.tsbuildinfo
+*.tsbuildinfo.bak
 
 # Debug
 node_modules/.cache/
+
+# Database
+*.sqlite
+*.db
+
+# Temporary files
+tmp/
+temp/
+*.tmp
+
+# Uploads
+uploads/
+*.upload
+
+# Test artifacts
+__snapshots__/
+*.snap

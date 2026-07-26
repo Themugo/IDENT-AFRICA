@@ -5,6 +5,74 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+---
+
+## [1.0.1] - 2026-07-25 - Production Hardening
+
+### Added
+- **Dynamic Pricing Engine**
+  - Pricing rules database with entity-based pricing
+  - Base price, season pricing, weekend pricing, peak season support
+  - Discounts and promotions system
+  - Admin campaign management controls
+  - Supplier approved pricing management
+
+- **Security & Permissions (Phase C)**
+  - Row Level Security (RLS) policies
+  - Role-based access control (6 roles)
+  - API permission scopes
+  - Storage access controls
+  - Audit logging system
+  - Rate limiting
+
+- **Content Migration System (Phase D)**
+  - Content status tracking (DEFAULT, DRAFT, PUBLISHED, ARCHIVED)
+  - Content ownership (system, admin, supplier)
+  - Bulk publish/unpublish/archive operations
+  - Image replacement tools
+  - Migration history and audit trails
+
+- **Quality Assurance (Phase E)**
+  - Comprehensive test suites (115 tests)
+  - User journey tests (16 tests)
+  - Supplier journey tests (20 tests)
+  - Admin journey tests (26 tests)
+  - Performance tests (22 tests)
+  - Integration tests (16 tests)
+  - Production checklist
+
+- **Environment Configuration (Phase 16)**
+  - Complete `.env.example` with all variables
+  - Configuration service (`src/config/`)
+  - Client-side config (`src/config/client.ts`)
+  - Vercel security headers
+
+- **Database Preparation (Phase 17)**
+  - Row Level Security policies
+  - Production seed data (5 destinations, 3 packages)
+  - Migration folder structure (`supabase/`)
+  - Integrity verification scripts
+
+- **Vercel Deployment (Phase 18)**
+  - Optimized build configuration
+  - SPA routing in `vercel.json`
+  - Asset optimization and chunking
+  - Enhanced deployment guide
+
+- **GitHub Repository (Phase 19)**
+  - Professional README with architecture
+  - CONTRIBUTING guidelines
+  - Issue templates
+  - GitHub workflows
+
+### Changed
+- `vite.config.ts` - Enhanced production optimization
+- `package.json` - Improved build scripts
+- `vercel.json` - Enhanced security headers
+- `DEPLOYMENT.md` - Comprehensive deployment guide
+
+---
+
 ## [1.0.0] - 2026-01-25 - Initial Production Release
 
 ### Added

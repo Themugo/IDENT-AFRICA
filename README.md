@@ -6,9 +6,11 @@
 
 **Luxury East Africa Expeditions & Sanctuaries**
 
-> **Version 1.0.0** | [Changelog](CHANGELOG.md) | [Security](SECURITY.md) | [Deployment](DEPLOYMENT.md)
+> **Version 1.0.0** | [Changelog](CHANGELOG.md) | [Security](SECURITY.md) | [Deployment](DEPLOYMENT.md) | [Contributing](CONTRIBUTING.md)
 
 A premium travel ecosystem platform for booking African safari experiences, featuring AI-powered itinerary planning, multi-gateway payment processing (Stripe, Flutterwave, M-Pesa), JWT authentication, and a comprehensive supplier management portal.
+
+---
 
 ## 🦁 Features
 
@@ -23,16 +25,63 @@ A premium travel ecosystem platform for booking African safari experiences, feat
 - **Real-time Exchange Rates** - Multi-currency support (USD, EUR, GBP, KES)
 - **User Authentication** - JWT-based login/logout system
 
+---
+
+## 🏗️ Architecture
+
+```
+┌─────────────────────────────────────────────────────────────┐
+│                        Frontend                              │
+│                   React 19 + Vite + Tailwind                │
+└─────────────────────────┬───────────────────────────────────┘
+                          │ HTTP/REST
+┌─────────────────────────▼───────────────────────────────────┐
+│                        Backend                               │
+│                  Express.js + Node.js                        │
+│  ┌─────────┐  ┌─────────┐  ┌─────────┐  ┌─────────────┐   │
+│  │   AI    │  │Payments │  │  Auth   │  │  Business   │   │
+│  │ Planner │  │Gateway  │  │ Service │  │   Logic     │   │
+│  └─────────┘  └─────────┘  └─────────┘  └─────────────┘   │
+└─────────────────────────┬───────────────────────────────────┘
+                          │
+        ┌─────────────────┼─────────────────┐
+        │                 │                 │
+        ▼                 ▼                 ▼
+┌───────────────┐  ┌─────────────┐  ┌──────────────┐
+│  PostgreSQL   │  │  External   │  │   Content    │
+│   Database    │  │   APIs      │  │    CMS       │
+└───────────────┘  └─────────────┘  └──────────────┘
+```
+
+### System Modules
+
+| Module | Description |
+|--------|-------------|
+| **Authentication** | JWT-based auth with role management |
+| **Destinations** | Safari destinations with gallery and wildlife info |
+| **Bookings** | Complete booking lifecycle management |
+| **Payments** | Multi-gateway processing (Stripe, Flutterwave, M-Pesa) |
+| **AI Planner** | Gemini-powered trip planning |
+| **CMS** | Content management system |
+| **Supplier Portal** | Partner dashboard and earnings |
+| **Admin** | Comprehensive admin controls |
+
+---
+
 ## 🛠️ Tech Stack
 
 | Layer | Technology |
 |------|------------|
-| Frontend | React 19, TypeScript, Tailwind CSS 4, Vite 6 |
-| Backend | Express.js, Node.js |
-| AI | Google Gemini (@google/genai) |
-| Payments | Stripe, Flutterwave, M-Pesa |
-| Database | PostgreSQL 14+ (schema provided) |
-| Auth | JWT tokens |
+| **Frontend** | React 19, TypeScript, Tailwind CSS 4, Vite 6 |
+| **Backend** | Express.js, Node.js 18+ |
+| **AI** | Google Gemini (@google/genai) |
+| **Payments** | Stripe, Flutterwave, M-Pesa |
+| **Database** | PostgreSQL 14+ (optional - mock data by default) |
+| **Auth** | JWT tokens with refresh support |
+| **Icons** | Lucide React |
+| **Animations** | Motion (Framer Motion alternative) |
+
+---
 
 ## 📋 Prerequisites
 
@@ -40,6 +89,8 @@ A premium travel ecosystem platform for booking African safari experiences, feat
 - **npm** or **pnpm** package manager
 - **PostgreSQL** 14+ (optional for local dev - uses mock data by default)
 - **Gemini API Key** from [Google AI Studio](https://aistudio.google.com/apikey)
+
+---
 
 ## 🚀 Getting Started
 
