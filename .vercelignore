@@ -1,0 +1,55 @@
+# Dependencies
+node_modules/
+
+# Build outputs (generated during build)
+dist/
+build/
+
+# Development files
+.env
+.env.*
+!.env.example
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Git
+.git/
+.gitignore
+
+# Documentation
+*.md
+docs/
+
+# Database
+database/
+supabase/
+
+# Tests
+tests/
+
+# Mobile (separate app)
+mobile/
+
+# Temporary files
+tmp/
+temp/
+*.tmp
+*.log
+npm-debug.log*
+
+# TypeScript cache
+*.tsbuildinfo
+
+# Coverage
+coverage/
+
+# CI/CD
+.github/
