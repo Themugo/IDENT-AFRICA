@@ -4447,3 +4447,262 @@ CREATE TABLE IF NOT EXISTS revenue_summary (
 -- =============================================================================
 -- END OF MONETIZATION SYSTEM
 -- =============================================================================
+-- =============================================================================
+-- SECURITY AND PERMISSIONS SYSTEM
+-- Role-based access control and audit logging
+-- =============================================================================
+
+-- User roles enumeration
+CREATE TYPE user_role AS ENUM (
+    'super_admin',
+    'admin',
+    'content_manager',
+    'finance_manager',
+    'supplier',
+    'customer'
+);
+
+-- Role permissions
+CREATE TABLE IF NOT EXISTS role_permissions (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    role user_role NOT NULL UNIQUE,
+    role_name VARCHAR(64) NOT NULL,
+    description TEXT,
+    permissions JSONB NOT NULL DEFAULT '{}',
+    is_system_role BOOLEAN DEFAULT FALSE,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Insert default role permissions
+INSERT INTO role_permissions (role, role_name, description, permissions, is_system_role) VALUES
+('super_admin', 'Super Administrator', 'Full system access', '{"modules": ["all"], "actions": {"all": ["read", "create", "update", "delete", "approve", "export"]}, "constraints": {"own_only": false}}'::jsonb, TRUE),
+('admin', 'Administrator', 'Administrative access', '{"modules": ["destinations", "packages", "bookings", "payments", "suppliers", "users", "reports", "analytics"], "actions": {"destinations": ["read", "create", "update", "delete"], "packages": ["read", "create", "update", "delete"], "bookings": ["read", "create", "update", "delete"], "payments": ["read", "create", "update"], "suppliers": ["read", "create", "update"], "users": ["read", "create", "update"], "reports": ["read", "export"], "analytics": ["read", "export"]}, "constraints": {"own_only": false}}'::jsonb, TRUE),
+('content_manager', 'Content Manager', 'CMS only', '{"modules": ["destinations", "packages", "experiences", "media", "cms"], "actions": {"destinations": ["read", "create", "update", "delete"], "packages": ["read", "create", "update", "delete"], "experiences": ["read", "create", "update", "delete"], "media": ["read", "create", "update", "delete"], "cms": ["read", "create", "update", "delete"]}, "constraints": {"own_only": false}}'::jsonb, TRUE),
+('finance_manager', 'Finance Manager', 'Financial data only', '{"modules": ["payments", "commissions", "payouts", "revenue", "reports"], "actions": {"payments": ["read", "create", "refund"], "commissions": ["read", "export"], "payouts": ["read", "create", "update"], "revenue": ["read", "export"], "reports": ["read", "export"]}, "constraints": {"own_only": false}}'::jsonb, TRUE),
+('supplier', 'Supplier', 'Own business only', '{"modules": ["suppliers", "packages", "bookings", "payments", "reviews", "analytics"], "actions": {"suppliers": ["read", "update"], "packages": ["read", "create", "update", "delete"], "bookings": ["read"], "payments": ["read"], "reviews": ["read"], "analytics": ["read"]}, "constraints": {"own_only": true, "own_entity_field": "supplier_id"}}'::jsonb, TRUE),
+('customer', 'Customer', 'Own profile only', '{"modules": ["profile", "bookings", "payments", "reviews", "loyalty"], "actions": {"profile": ["read", "update"], "bookings": ["read", "create"], "payments": ["read"], "reviews": ["read", "create"], "loyalty": ["read"]}, "constraints": {"own_only": true, "own_entity_field": "user_id"}}'::jsonb, TRUE)
+ON CONFLICT (role) DO NOTHING;
+
+-- API keys
+CREATE TABLE IF NOT EXISTS api_keys (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    name VARCHAR(128) NOT NULL,
+    description TEXT,
+    key_hash VARCHAR(256) NOT NULL,
+    key_prefix VARCHAR(8) NOT NULL,
+    user_id VARCHAR(64),
+    service_name VARCHAR(64),
+    scopes JSONB DEFAULT '[]',
+    rate_limit INT DEFAULT 1000,
+    rate_limit_period VARCHAR(16) DEFAULT 'hour',
+    is_active BOOLEAN DEFAULT TRUE,
+    expires_at TIMESTAMP WITH TIME ZONE,
+    last_used_at TIMESTAMP WITH TIME ZONE,
+    total_requests INT DEFAULT 0,
+    allowed_ips JSONB DEFAULT '[]',
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE INDEX idx_api_keys_user ON api_keys(user_id);
+CREATE INDEX idx_api_keys_prefix ON api_keys(key_prefix);
+CREATE INDEX idx_api_keys_active ON api_keys(is_active) WHERE is_active = TRUE;
+
+-- Audit log
+CREATE TYPE audit_action AS ENUM ('create', 'read', 'update', 'delete', 'login', 'logout', 'password_change', 'permission_change', 'api_key_created', 'api_key_revoked', 'payment_processed', 'payment_refunded', 'data_export', 'access_denied');
+
+CREATE TABLE IF NOT EXISTS audit_logs (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    user_id VARCHAR(64),
+    user_role user_role,
+    session_id VARCHAR(128),
+    ip_address INET,
+    action audit_action NOT NULL,
+    resource_type VARCHAR(64) NOT NULL,
+    resource_id VARCHAR(128),
+    details JSONB DEFAULT '{}',
+    success BOOLEAN DEFAULT TRUE,
+    error_message TEXT,
+    user_agent TEXT,
+    request_method VARCHAR(10),
+    request_path VARCHAR(512),
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE INDEX idx_audit_user ON audit_logs(user_id);
+CREATE INDEX idx_audit_action ON audit_logs(action);
+CREATE INDEX idx_audit_resource ON audit_logs(resource_type, resource_id);
+CREATE INDEX idx_audit_created ON audit_logs(created_at DESC);
+
+-- Row-level security policies
+CREATE TABLE IF NOT EXISTS row_security_policies (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    name VARCHAR(128) NOT NULL UNIQUE,
+    description TEXT,
+    table_name VARCHAR(64) NOT NULL,
+    select_policy JSONB,
+    insert_policy JSONB,
+    update_policy JSONB,
+    delete_policy JSONB,
+    applicable_roles user_role[] DEFAULT '{}',
+    is_active BOOLEAN DEFAULT TRUE,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
+
+INSERT INTO row_security_policies (name, description, table_name, select_policy, applicable_roles) VALUES
+('suppliers_own_data', 'Suppliers see own data', 'suppliers', '{"field": "id", "condition": "equals", "user_field": "supplier_id"}', ARRAY['supplier'::user_role]),
+('bookings_supplier_filter', 'Suppliers see their bookings', 'bookings', '{"field": "supplier_id", "condition": "equals", "user_field": "supplier_id"}', ARRAY['supplier'::user_role]),
+('bookings_customer_filter', 'Customers see own bookings', 'bookings', '{"field": "user_id", "condition": "equals", "user_field": "user_id"}', ARRAY['customer'::user_role]),
+('packages_supplier_filter', 'Suppliers see own packages', 'packages', '{"field": "supplier_id", "condition": "equals", "user_field": "supplier_id"}', ARRAY['supplier'::user_role])
+ON CONFLICT (name) DO NOTHING;
+
+-- Login attempts
+CREATE TYPE login_status AS ENUM ('success', 'failed', 'locked', 'blocked_ip');
+
+CREATE TABLE IF NOT EXISTS login_attempts (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    user_id VARCHAR(64),
+    email VARCHAR(255),
+    ip_address INET NOT NULL,
+    user_agent TEXT,
+    status login_status NOT NULL,
+    failure_reason VARCHAR(128),
+    locked_until TIMESTAMP WITH TIME ZONE,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE INDEX idx_login_attempts_user ON login_attempts(user_id);
+CREATE INDEX idx_login_attempts_ip ON login_attempts(ip_address);
+
+-- User sessions
+CREATE TABLE IF NOT EXISTS user_sessions (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    session_token VARCHAR(256) NOT NULL UNIQUE,
+    user_id VARCHAR(64) NOT NULL,
+    ip_address INET,
+    user_agent TEXT,
+    device_type VARCHAR(32),
+    country VARCHAR(64),
+    city VARCHAR(128),
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    last_active_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    expires_at TIMESTAMP WITH TIME ZONE NOT NULL,
+    is_active BOOLEAN DEFAULT TRUE,
+    is_current BOOLEAN DEFAULT FALSE,
+    refresh_token VARCHAR(256),
+    refresh_token_expires_at TIMESTAMP WITH TIME ZONE
+);
+
+CREATE INDEX idx_sessions_user ON user_sessions(user_id);
+CREATE INDEX idx_sessions_token ON user_sessions(session_token);
+CREATE INDEX idx_sessions_active ON user_sessions(is_active) WHERE is_active = TRUE;
+
+-- Password history
+CREATE TABLE IF NOT EXISTS password_history (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    user_id VARCHAR(64) NOT NULL,
+    password_hash VARCHAR(256) NOT NULL,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE INDEX idx_password_history_user ON password_history(user_id);
+
+-- =============================================================================
+-- END OF SECURITY AND PERMISSIONS SYSTEM
+-- =============================================================================
+
+-- =============================================================================
+-- PAYMENT SECURITY SYSTEM
+-- =============================================================================
+
+-- Payment idempotency
+CREATE TABLE IF NOT EXISTS payment_idempotency (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    idempotency_key VARCHAR(128) NOT NULL UNIQUE,
+    request_hash VARCHAR(256) NOT NULL,
+    response_status INT,
+    response_body JSONB,
+    response_created_at TIMESTAMP WITH TIME ZONE,
+    expires_at TIMESTAMP WITH TIME ZONE NOT NULL,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE INDEX idx_idempotency_key ON payment_idempotency(idempotency_key);
+CREATE INDEX idx_idempotency_expires ON payment_idempotency(expires_at) WHERE expires_at > CURRENT_TIMESTAMP;
+
+-- Transaction log
+CREATE TABLE IF NOT EXISTS transaction_logs (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    transaction_id VARCHAR(128) NOT NULL,
+    payment_id VARCHAR(128),
+    booking_id VARCHAR(128),
+    provider VARCHAR(32) NOT NULL,
+    provider_transaction_id VARCHAR(256),
+    transaction_type VARCHAR(32) NOT NULL,
+    amount NUMERIC(12, 2) NOT NULL,
+    currency VARCHAR(3) NOT NULL,
+    status VARCHAR(32) NOT NULL,
+    signature VARCHAR(512),
+    webhook_verified BOOLEAN DEFAULT FALSE,
+    request_payload JSONB,
+    response_payload JSONB,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    completed_at TIMESTAMP WITH TIME ZONE,
+    error_code VARCHAR(64),
+    error_message TEXT
+);
+
+CREATE INDEX idx_tx_log_payment ON transaction_logs(payment_id);
+CREATE INDEX idx_tx_log_booking ON transaction_logs(booking_id);
+CREATE INDEX idx_tx_log_provider ON transaction_logs(provider, provider_transaction_id);
+
+-- Refund tracking
+CREATE TABLE IF NOT EXISTS refund_tracking (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    refund_id VARCHAR(128) NOT NULL UNIQUE,
+    original_payment_id VARCHAR(128) NOT NULL,
+    booking_id VARCHAR(128),
+    amount NUMERIC(12, 2) NOT NULL,
+    currency VARCHAR(3) NOT NULL,
+    reason VARCHAR(255),
+    refund_type VARCHAR(32),
+    status VARCHAR(32) DEFAULT 'pending',
+    requested_by VARCHAR(64),
+    approved_by VARCHAR(64),
+    approved_at TIMESTAMP WITH TIME ZONE,
+    rejection_reason TEXT,
+    provider VARCHAR(32),
+    provider_refund_id VARCHAR(256),
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    completed_at TIMESTAMP WITH TIME ZONE
+);
+
+CREATE INDEX idx_refund_payment ON refund_tracking(original_payment_id);
+CREATE INDEX idx_refund_status ON refund_tracking(status);
+
+-- Webhook logs
+CREATE TABLE IF NOT EXISTS webhook_logs (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    provider VARCHAR(32) NOT NULL,
+    event_id VARCHAR(128) NOT NULL,
+    event_type VARCHAR(64) NOT NULL,
+    request_ip INET,
+    request_headers JSONB,
+    request_body JSONB,
+    signature_valid BOOLEAN DEFAULT FALSE,
+    signature_used VARCHAR(512),
+    processed BOOLEAN DEFAULT FALSE,
+    processed_at TIMESTAMP WITH TIME ZONE,
+    processing_result VARCHAR(32),
+    processing_error TEXT,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE INDEX idx_webhook_provider ON webhook_logs(provider, event_id);
+CREATE INDEX idx_webhook_processed ON webhook_logs(processed, created_at DESC);
+
+-- =============================================================================
+-- END OF PAYMENT SECURITY SYSTEM
+-- =============================================================================
