@@ -3314,3 +3314,362 @@ CREATE TYPE sustainability_filter AS ENUM (
 -- =============================================================================
 -- END OF SUSTAINABILITY SYSTEM
 -- =============================================================================
+
+-- =============================================================================
+-- AUTOMATION ENGINE
+-- Event-driven workflow automation system
+-- =============================================================================
+
+-- Event types
+CREATE TYPE automation_event_type AS ENUM (
+    'booking.created',
+    'booking.updated',
+    'booking.cancelled',
+    'payment.completed',
+    'payment.failed',
+    'payment.refunded',
+    'supplier.approved',
+    'supplier.rejected',
+    'supplier.suspended',
+    'review.submitted',
+    'review.approved',
+    'document.generated',
+    'notification.sent',
+    'loyalty.points_earned',
+    'loyalty.tier_upgraded'
+);
+
+-- Action types
+CREATE TYPE automation_action_type AS ENUM (
+    'send_email',
+    'send_notification',
+    'update_status',
+    'generate_document',
+    'notify_supplier',
+    'webhook',
+    'slack_message',
+    'sms',
+    'loyalty_award'
+);
+
+-- Workflow status
+CREATE TYPE workflow_status AS ENUM (
+    'active',
+    'paused',
+    'disabled'
+);
+
+-- Trigger status
+CREATE TYPE trigger_status AS ENUM (
+    'active',
+    'paused',
+    'disabled'
+);
+
+-- Workflow definitions
+CREATE TABLE IF NOT EXISTS workflows (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    
+    -- Workflow info
+    name VARCHAR(128) NOT NULL,
+    description TEXT,
+    
+    -- Trigger
+    trigger_event automation_event_type NOT NULL,
+    trigger_conditions JSONB DEFAULT '{}', -- Conditions for when to fire
+    
+    -- Actions (sequence)
+    actions JSONB NOT NULL, -- Array of action definitions
+    
+    -- Example structure:
+    -- [
+    --   {"type": "send_email", "template": "booking_confirm", "to": "{{customer.email}}"},
+    --   {"type": "send_notification", "message": "New booking: {{booking.id}}"},
+    --   {"type": "generate_document", "document_type": "booking_confirmation", "entity_id": "{{booking.id}}"}
+    -- ]
+    
+    -- Status
+    status workflow_status DEFAULT 'active',
+    
+    -- Priority (lower = higher priority)
+    priority INT DEFAULT 100,
+    
+    -- Execution settings
+    max_retries INT DEFAULT 3,
+    retry_delay_seconds INT DEFAULT 60,
+    timeout_seconds INT DEFAULT 300,
+    
+    -- Filters
+    entity_type VARCHAR(64), -- Only trigger for specific entity types
+    
+    -- Stats
+    trigger_count INT DEFAULT 0,
+    success_count INT DEFAULT 0,
+    failure_count INT DEFAULT 0,
+    
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE INDEX idx_workflows_event ON workflows(trigger_event);
+CREATE INDEX idx_workflows_status ON workflows(status);
+
+CREATE TRIGGER update_workflows_updated_at
+    BEFORE UPDATE ON workflows
+    FOR EACH ROW
+    EXECUTE FUNCTION update_updated_at_column();
+
+-- Event log (all events that have occurred)
+CREATE TABLE IF NOT EXISTS automation_events (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    
+    -- Event info
+    event_type automation_event_type NOT NULL,
+    
+    -- Entity reference
+    entity_type VARCHAR(64) NOT NULL, -- 'booking', 'payment', 'supplier', 'review'
+    entity_id VARCHAR(128) NOT NULL,
+    
+    -- Event data
+    payload JSONB DEFAULT '{}', -- Full event payload
+    
+    -- Triggered workflows
+    triggered_workflows JSONB DEFAULT '[]', -- Array of workflow IDs that were triggered
+    
+    -- Status
+    processed BOOLEAN DEFAULT FALSE,
+    processed_at TIMESTAMP WITH TIME ZONE,
+    processing_error TEXT,
+    
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE INDEX idx_events_type ON automation_events(event_type);
+CREATE INDEX idx_events_entity ON automation_events(entity_type, entity_id);
+CREATE INDEX idx_events_processed ON automation_events(processed) WHERE processed = FALSE;
+CREATE INDEX idx_events_created ON automation_events(created_at DESC);
+
+-- Workflow execution logs
+CREATE TABLE IF NOT EXISTS workflow_logs (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    
+    -- Workflow reference
+    workflow_id UUID REFERENCES workflows(id) ON DELETE SET NULL,
+    workflow_name VARCHAR(128),
+    
+    -- Event reference
+    event_id UUID REFERENCES automation_events(id) ON DELETE SET NULL,
+    
+    -- Execution info
+    execution_id VARCHAR(128) UNIQUE NOT NULL,
+    
+    -- Entity context
+    entity_type VARCHAR(64),
+    entity_id VARCHAR(128),
+    
+    -- Action being executed
+    action_index INT,
+    action_type automation_action_type,
+    action_config JSONB DEFAULT '{}',
+    
+    -- Status
+    status VARCHAR(32) DEFAULT 'pending', -- 'pending', 'running', 'success', 'failed', 'retrying'
+    
+    -- Timing
+    started_at TIMESTAMP WITH TIME ZONE,
+    completed_at TIMESTAMP WITH TIME ZONE,
+    duration_ms INT,
+    
+    -- Result
+    result JSONB DEFAULT '{}',
+    error_message TEXT,
+    retry_count INT DEFAULT 0,
+    
+    -- Request/Response for webhooks
+    request_body JSONB,
+    response_body JSONB,
+    response_status INT,
+    
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE INDEX idx_logs_workflow ON workflow_logs(workflow_id);
+CREATE INDEX idx_logs_event ON workflow_logs(event_id);
+CREATE INDEX idx_logs_status ON workflow_logs(status);
+CREATE INDEX idx_logs_execution ON workflow_logs(execution_id);
+CREATE INDEX idx_logs_created ON workflow_logs(created_at DESC);
+
+CREATE TRIGGER update_workflow_logs_updated_at
+    BEFORE UPDATE ON workflow_logs
+    FOR EACH ROW
+    EXECUTE FUNCTION update_updated_at_column();
+
+-- Email templates
+CREATE TABLE IF NOT EXISTS email_templates (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    
+    -- Template info
+    name VARCHAR(128) NOT NULL UNIQUE,
+    subject VARCHAR(255) NOT NULL,
+    body_html TEXT,
+    body_text TEXT,
+    
+    -- Template variables
+    variables JSONB DEFAULT '[]', -- List of variable names
+    
+    -- For use with events
+    default_for_event automation_event_type,
+    
+    -- Status
+    is_active BOOLEAN DEFAULT TRUE,
+    
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Insert default email templates
+INSERT INTO email_templates (name, subject, body_html, body_text, variables, default_for_event) VALUES
+(
+    'booking_confirmation',
+    'Booking Confirmed - {{booking_reference}}',
+    '<h1>Booking Confirmed!</h1><p>Dear {{customer_name}},</p><p>Your booking {{booking_reference}} has been confirmed.</p>',
+    'Booking Confirmed!\n\nDear {{customer_name}},\n\nYour booking {{booking_reference}} has been confirmed.',
+    '["customer_name", "booking_reference", "booking_date", "safari_name"]',
+    'booking.created'
+),
+(
+    'payment_receipt',
+    'Payment Received - {{booking_reference}}',
+    '<h1>Payment Receipt</h1><p>Thank you for your payment of {{amount}} {{currency}}.</p>',
+    'Payment Received\n\nThank you for your payment of {{amount}} {{currency}}.',
+    '["customer_name", "booking_reference", "amount", "currency", "payment_date"]',
+    'payment.completed'
+),
+(
+    'supplier_approval',
+    'Supplier Application Approved',
+    '<h1>Congratulations!</h1><p>Your supplier application has been approved.</p>',
+    'Congratulations!\n\nYour supplier application has been approved.',
+    '["supplier_name", "approved_date"]',
+    'supplier.approved'
+),
+(
+    'review_confirmation',
+    'Thank You for Your Review',
+    '<h1>Thank You!</h1><p>Your review for {{safari_name}} has been submitted.</p>',
+    'Thank You!\n\nYour review for {{safari_name}} has been submitted.',
+    '["customer_name", "safari_name", "rating"]',
+    'review.submitted'
+)
+ON CONFLICT (name) DO NOTHING;
+
+-- Notification templates
+CREATE TABLE IF NOT EXISTS notification_templates (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    
+    -- Template info
+    name VARCHAR(128) NOT NULL UNIQUE,
+    title VARCHAR(255) NOT NULL,
+    message TEXT NOT NULL,
+    
+    -- Template variables
+    variables JSONB DEFAULT '[]',
+    
+    -- Channels
+    channels VARCHAR(32)[] DEFAULT ARRAY['in_app'], -- 'in_app', 'push', 'email'
+    
+    -- For use with events
+    default_for_event automation_event_type,
+    
+    -- Status
+    is_active BOOLEAN DEFAULT TRUE,
+    
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Insert default notification templates
+INSERT INTO notification_templates (name, title, message, variables, channels, default_for_event) VALUES
+(
+    'new_booking_admin',
+    'New Booking',
+    'New booking {{booking_id}} from {{customer_name}} for {{safari_name}}',
+    '["booking_id", "customer_name", "safari_name", "amount"]',
+    ARRAY['in_app', 'email'],
+    'booking.created'
+),
+(
+    'payment_received_admin',
+    'Payment Received',
+    'Payment of {{amount}} {{currency}} received for booking {{booking_id}}',
+    '["booking_id", "amount", "currency", "payment_method"]',
+    ARRAY['in_app'],
+    'payment.completed'
+),
+(
+    'supplier_approved_admin',
+    'Supplier Approved',
+    'Supplier {{supplier_name}} has been approved',
+    '["supplier_name", "category"]',
+    ARRAY['in_app', 'email'],
+    'supplier.approved'
+),
+(
+    'review_submitted_supplier',
+    'New Review',
+    'You received a {{rating}}-star review: {{review_excerpt}}',
+    '["supplier_name", "rating", "review_excerpt"]',
+    ARRAY['in_app', 'email'],
+    'review.submitted'
+)
+ON CONFLICT (name) DO NOTHING;
+
+-- Insert default workflows
+INSERT INTO workflows (name, description, trigger_event, actions, priority) VALUES
+(
+    'Booking Confirmation Email',
+    'Send confirmation email when a booking is created',
+    'booking.created',
+    '[
+        {"type": "send_email", "template": "booking_confirmation"},
+        {"type": "send_notification", "template": "new_booking_admin"}
+    ]'::jsonb,
+    10
+),
+(
+    'Payment Confirmation',
+    'Send payment receipt and update booking status',
+    'payment.completed',
+    '[
+        {"type": "send_email", "template": "payment_receipt"},
+        {"type": "update_status", "status": "confirmed"},
+        {"type": "generate_document", "document_type": "invoice"}
+    ]'::jsonb,
+    20
+),
+(
+    'Supplier Approval Notification',
+    'Notify supplier when approved and generate welcome document',
+    'supplier.approved',
+    '[
+        {"type": "send_email", "template": "supplier_approval"},
+        {"type": "notify_supplier", "message": "Your supplier application has been approved!"},
+        {"type": "generate_document", "document_type": "supplier_contract"}
+    ]'::jsonb,
+    15
+),
+(
+    'Review Submitted',
+    'Thank customer for review and notify supplier',
+    'review.submitted',
+    '[
+        {"type": "send_email", "template": "review_confirmation"},
+        {"type": "notify_supplier", "template": "review_submitted_supplier"}
+    ]'::jsonb,
+    25
+)
+ON CONFLICT DO NOTHING;
+
+-- =============================================================================
+-- END OF AUTOMATION ENGINE
+-- =============================================================================
