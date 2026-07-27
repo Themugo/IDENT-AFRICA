@@ -6,3 +6,9 @@ coverage/
 *.log
 .env*
 !.env.example
+.vercel/
+*.tsbuildinfo
+.turbo/
+*.swp
+*.swo
+*~

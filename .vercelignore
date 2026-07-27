@@ -1,0 +1,78 @@
+# Dependencies - downloaded during install
+node_modules/
+
+# Development files
+.env
+.env.*
+!.env.example
+.env.production
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Git
+.git/
+.gitignore
+
+# Documentation
+*.md
+docs/
+README.md
+CHANGELOG.md
+LICENSE.md
+
+# Database - separate project
+database/
+supabase/
+
+# Tests - run separately in CI
+tests/
+jest.config.*
+vitest.config.*
+*.test.ts
+*.test.tsx
+*.spec.ts
+*.spec.tsx
+
+# Mobile - separate application
+mobile/
+
+# Temporary files
+tmp/
+temp/
+*.tmp
+*.log
+npm-debug.log*
+yarn-error.log
+pnpm-debug.log
+
+# TypeScript cache
+*.tsbuildinfo
+tsconfig.tsbuildinfo
+
+# Coverage
+coverage/
+
+# CI/CD configurations (use Vercel dashboard for settings)
+.github/
+.gitlab-ci.yml
+.circleci/
+
+# Build directories should NOT be excluded!
+# dist/ and build/ are created during npm run build
+# Vercel needs these to serve the application
+
+# Server-side files (not deployed to Vercel)
+# These are part of the separate Express backend
+server.ts
+src/routes/
+src/database/
+src/auth/
+src/server/
