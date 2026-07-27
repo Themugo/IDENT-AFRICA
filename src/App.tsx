@@ -8,6 +8,14 @@ import { AppProvider, useApp } from './context/AppContext';
 import { ErrorBoundary } from './components/common/ErrorBoundary';
 import { Header } from './components/common/Header';
 import { Footer } from './components/common/Footer';
+// Luxury Brand Components
+import { LuxuryHero } from './components/home/LuxuryHero';
+import { EastAfricaMap } from './components/home/EastAfricaMap';
+import { MigrationRoutes } from './components/home/MigrationRoutes';
+import { ConservationImpact } from './components/home/ConservationImpact';
+import { AuthoritySection } from './components/home/AuthoritySection';
+import { LuxuryStoryBlocks } from './components/home/LuxuryStoryBlocks';
+// Original Components
 import { Hero } from './components/home/Hero';
 import { FeaturedDestinations } from './components/home/FeaturedDestinations';
 import { ExperiencePillars } from './components/home/ExperiencePillars';
@@ -43,7 +51,15 @@ const MainContent: React.FC = () => {
       <main className="flex-grow">
         {currentPage === 'home' && (
           <>
-            <Hero />
+            {/* Luxury Brand Transformation - National Geographic / Aman Resorts Quality */}
+            <LuxuryHero />
+            <LuxuryStoryBlocks />
+            <EastAfricaMap />
+            <MigrationRoutes />
+            <ConservationImpact />
+            <AuthoritySection />
+            
+            {/* Original Functionality Sections */}
             <FeaturedDestinations />
             <ExperiencePillars />
             <ItineraryShowcase />
