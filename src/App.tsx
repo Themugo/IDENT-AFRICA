@@ -8,6 +8,10 @@ import { AppProvider, useApp } from './context/AppContext';
 import { ErrorBoundary } from './components/common/ErrorBoundary';
 import { Header } from './components/common/Header';
 import { Footer } from './components/common/Footer';
+// Navigation Components
+import { BreadcrumbBar } from './components/navigation/BreadcrumbBar';
+import { StickyInquiryButton } from './components/navigation/StickyInquiryButton';
+import { QuickNavDrawer } from './components/navigation/QuickNavDrawer';
 // Luxury Brand Components
 import { LuxuryHero } from './components/home/LuxuryHero';
 import { EastAfricaMap } from './components/home/EastAfricaMap';
@@ -47,6 +51,9 @@ const MainContent: React.FC = () => {
   return (
     <div className="flex flex-col min-h-screen">
       <Header />
+      
+      {/* Enterprise Navigation: Breadcrumbs on all pages except home */}
+      <BreadcrumbBar />
 
       <main className="flex-grow">
         {currentPage === 'home' && (
@@ -118,6 +125,10 @@ const MainContent: React.FC = () => {
       </main>
 
       <Footer />
+
+      {/* Enterprise Navigation Elements */}
+      <StickyInquiryButton />
+      <QuickNavDrawer />
 
       {/* Global Modals */}
       <AuthModal />
