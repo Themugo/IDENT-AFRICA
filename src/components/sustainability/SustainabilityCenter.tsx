@@ -239,7 +239,7 @@ export function SustainabilityCenter() {
           <ImpactCard icon={<MapPin className="w-5 h-5" />} label="Acres Protected" value={stats.total_acres_protected.toLocaleString()} />
           <ImpactCard icon={<Cloud className="w-5 h-5" />} label="CO₂ Offset (kg)" value={(stats.total_carbon_offset_kg / 1000).toFixed(1) + 'K'} />
           <ImpactCard icon={<DollarSign className="w-5 h-5" />} label="Community Investment" value={`$${(stats.total_community_investment_usd / 1000).toFixed(0)}K`} />
-          <ImpactCard icon={<Leaf className="w-5 h-5" />} label="Conservation Projects" value={stats.conservation_projects_count} />
+          <ImpactCard icon={<Leaf className="w-5 h-5" />} label="Conservation Projects" value={String(stats.conservation_projects_count)} />
         </div>
       )}
 

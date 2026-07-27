@@ -113,7 +113,7 @@ export const ProposalStep: React.FC<ProposalStepProps> = ({
                   </span>
                   <div>
                     <div className="font-serif text-[#F4E8D5]">{day.title}</div>
-                    <div className="text-[10px] text-[#D3C5AE]/50">{day.acc}</div>
+                    <div className="text-[10px] text-[#D3C5AE]/50">{day.accommodation}</div>
                   </div>
                 </div>
                 {expandedDay === day.day ? (
@@ -129,7 +129,7 @@ export const ProposalStep: React.FC<ProposalStepProps> = ({
                   exit={{ height: 0 }}
                   className="px-4 pb-4 text-sm text-[#D3C5AE]/80"
                 >
-                  <p>{day.desc}</p>
+                  <p>{day.description}</p>
                   <div className="flex gap-2 mt-2">
                     {day.activities.map((act, i) => (
                       <span key={i} className="px-2 py-1 bg-[#1A1008] rounded text-xs">

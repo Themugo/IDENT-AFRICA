@@ -32,7 +32,7 @@ export const ExpertReviewStep: React.FC<ExpertReviewStepProps> = ({
             setIsReviewing(false);
             setMessages(msgs => [...msgs, {
               from: 'expert',
-              text: `I've personally reviewed your safari request. I've secured preferred accommodations at ${proposal.itinerary[0].acc} and arranged exclusive access to private game drives. This will be an exceptional experience!`
+              text: `I've personally reviewed your safari request. I've secured preferred accommodations at ${proposal.itinerary[0].accommodation} and arranged exclusive access to private game drives. This will be an exceptional experience!`
             }]);
             return 100;
           }

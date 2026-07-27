@@ -47,6 +47,7 @@ interface Tier {
   name: string;
   description?: string;
   min_lifetime_points: number;
+  sortOrder: number;
   color: string;
   points_multiplier: number;
   discount_percentage: number;
@@ -224,7 +225,7 @@ export function LoyaltyCenter() {
 
   const getTierProgress = (profile: LoyaltyProfile): number => {
     const currentTier = tiers.find(t => t.tier === profile.membership_tier);
-    const nextTier = tiers.find(t => t.sort_order === (currentTier?.sort_order || 0) + 1);
+    const nextTier = tiers.find(t => t.sortOrder === (currentTier?.sortOrder || 0) + 1);
     
     if (!nextTier) return 100;
     

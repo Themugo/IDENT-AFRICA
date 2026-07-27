@@ -1,7 +1,7 @@
 import React from 'react';
 import { motion } from 'motion/react';
 import { 
-  Check, Calendar, Users, MapPin, Clock, 
+  Check, Calendar, Users, MapPin, Clock, Plane,
   Mail, Phone, Download, MessageCircle, PartyPopper
 } from 'lucide-react';
 import type { SafariProposal, BookingInquiry } from './LuxuryBookingFlow';

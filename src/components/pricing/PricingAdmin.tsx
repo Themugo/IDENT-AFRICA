@@ -24,7 +24,8 @@ import type {
   PricingRule, 
   PromotionalCampaign, 
   PricingSeason,
-  PricingRuleType
+  PricingRuleType,
+  PricingAction
 } from '../../services/pricing/types';
 
 interface PricingAdminProps {
@@ -290,7 +291,7 @@ function PricingRuleForm({
     name: '',
     ruleType: 'discount' as PricingRuleType,
     entityType: 'package' as 'destination' | 'package' | 'experience',
-    action: 'percentage' as 'percentage' | 'fixed',
+    action: 'percentage' as 'add' | 'subtract' | 'multiply' | 'percentage',
     percentageChange: 0,
     fixedAmount: 0,
     startDate: '',
@@ -335,7 +336,7 @@ function PricingRuleForm({
           <label className="block text-sm font-medium text-stone-700 mb-1">Action</label>
           <select
             value={form.action}
-            onChange={(e) => setForm({ ...form, action: e.target.value as 'percentage' | 'fixed' })}
+            onChange={(e) => setForm({ ...form, action: e.target.value as PricingAction })}
             className="w-full px-3 py-2 border border-stone-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-amber-400"
           >
             <option value="percentage">Percentage</option>

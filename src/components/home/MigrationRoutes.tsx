@@ -16,7 +16,7 @@ export const MigrationRoutes: React.FC = () => {
   const [particles, setParticles] = useState<Array<{ id: number; x: number; y: number; delay: number; size: number }>>([]);
   const timelineRef = useRef<HTMLDivElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
-  const animationRef = useRef<number>();
+  const animationRef = useRef<number>(0);
 
   const migrationMonths: MigrationMonth[] = [
     {

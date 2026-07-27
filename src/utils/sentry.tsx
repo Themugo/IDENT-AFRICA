@@ -4,7 +4,7 @@
  */
 
 import * as Sentry from '@sentry/react';
-import { BrowserTracing } from '@sentry/tracing';
+import { browserTracingIntegration } from '@sentry/react';
 
 // Sentry DSN - Replace with actual Sentry DSN from environment
 const SENTRY_DSN = import.meta.env.VITE_SENTRY_DSN || 'https://example@sentry.io/example';
@@ -111,30 +111,11 @@ export function initializeSentry() {
     
     // Integrate React
     integrations: [
-      new BrowserTracing({
-        // Enable performance monitoring
-        tracePropagationTargets: ['localhost', 'identafrica.com', /\.vercel\.app$/],
-        // Custom routing match pattern
-        routingInstrumentation: Sentry.reactRouterV6Instrumentation(
-          React.useEffect,
-          React.useLocation,
-          React.useMatches
-        ),
-      }),
-      
+      browserTracingIntegration(),
       // Enable Session Replay for better debugging
       Sentry.replayIntegration({
         maskAllText: true,
         maskAllInputs: true,
-        // Don't capture passwords
-        blockGuard: (event) => {
-          // Block inputs that look like passwords
-          const inputs = event.target as HTMLInputElement;
-          if (inputs?.type === 'password' || inputs?.name === 'password') {
-            return true;
-          }
-          return false;
-        },
       }),
     ],
   });

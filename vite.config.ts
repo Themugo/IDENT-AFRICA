@@ -28,8 +28,8 @@ export default defineConfig(() => {
           },
         },
       },
-      // Minify
-      minify: 'esbuild',
+      // Minify - explicit type assertion for TypeScript
+      minify: 'esbuild' as const,
       // CSS code splitting
       cssCodeSplit: true,
       // Source maps for debugging

@@ -55,8 +55,10 @@ export interface SeasonalRate {
 export interface LuxuryLodge {
   id: string;
   name: string;
+  tagline?: string;
   location: string;
   country: Country;
+  region?: string;
   tier: LuxuryTier;
   category: HotelCategory;
   rating: number;
@@ -178,6 +180,7 @@ export interface SafariItinerary {
   rating: number;
   reviewsCount: number;
   heroImage: string;
+  gallery?: string[];
   wildlifeTags: WildlifeFocus[];
   includedInPrice: string[];
   excludedInPrice: string[];
@@ -212,6 +215,7 @@ export type PaymentGateway = 'Stripe' | 'Flutterwave' | 'M-Pesa' | 'Bank Wire';
 
 export type BookingStatus = 
   | 'Pending Approval' 
+  | 'Pending Ranger Dispatch' 
   | 'Confirmed' 
   | 'In Progress' 
   | 'Completed' 

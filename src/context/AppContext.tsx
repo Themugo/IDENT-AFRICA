@@ -60,6 +60,9 @@ interface AppContextType {
   
   // Actions
   navigateTo: (page: NavigationPage, targetId?: string) => void;
+  goBack: () => void;
+  previousPageContext: { label: string; page: NavigationPage } | null;
+  navigationHistory: { label: string; page: NavigationPage }[];
   setCurrency: (c: Currency) => void;
   toggleTheme: () => void;
   toggleSaveDestination: (id: string) => void;
@@ -417,6 +420,22 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       window.scrollTo({ top: 0, behavior: 'smooth' });
     }
   };
+
+  // Navigation history for goBack functionality
+  const [navigationHistory, setNavigationHistory] = useState<{ label: string; page: NavigationPage }[]>([]);
+  const [previousPageContext, setPreviousPageContext] = useState<{ label: string; page: NavigationPage } | null>(null);
+
+  const goBack = () => {
+    if (navigationHistory.length > 1) {
+      const previous = navigationHistory[navigationHistory.length - 2];
+      setPreviousPageContext(navigationHistory[navigationHistory.length - 1]);
+      setNavigationHistory(prev => prev.slice(0, -1));
+      setCurrentPage(previous.page);
+    }
+  };
+  
+  // Export navigationHistory for QuickNavDrawer
+  const contextNavigationHistory = navigationHistory;
 
   const toggleSaveDestination = (id: string) => {
     setSavedDestinationIds(prev =>
@@ -819,6 +838,9 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         bookingModalOpen,
         bookingModalTarget,
         navigateTo,
+        goBack,
+        previousPageContext,
+        navigationHistory: contextNavigationHistory,
         toggleTheme,
         toggleSaveDestination,
         toggleSaveItinerary,

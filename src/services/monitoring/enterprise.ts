@@ -374,8 +374,3 @@ export const enterpriseMonitor: EnterpriseMonitor = {
   performance: performanceMonitor,
   logger,
 };
-
-// Export individual components
-export { metrics } from './enterprise';
-export { securityMonitor } from './enterprise';
-export { performanceMonitor } from './enterprise';
