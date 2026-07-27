@@ -34,6 +34,8 @@ import { HotelListing } from './components/hotels/HotelListing';
 import { HotelDetail } from './components/hotels/HotelDetail';
 import { HotelComparator } from './components/hotels/HotelComparator';
 import { TripComparator } from './components/compare/TripComparator';
+// AI Concierge Components
+import { LuxurySafariConcierge } from './components/ai-planner/LuxurySafariConcierge';
 import { AISafariPlanner } from './components/ai-planner/AISafariPlanner';
 import { VisualItineraryBuilder } from './components/builder/VisualItineraryBuilder';
 import { UserDashboard } from './components/dashboard/UserDashboard';
@@ -87,7 +89,7 @@ const MainContent: React.FC = () => {
         {currentPage === 'itineraries' && <ItineraryShowcase />}
         {currentPage === 'itinerary-builder' && <VisualItineraryBuilder />}
         {currentPage === 'compare' && <TripComparator />}
-        {currentPage === 'ai-planner' && <AISafariPlanner />}
+        {currentPage === 'ai-planner' && <LuxurySafariConcierge />}
         {currentPage === 'user-dashboard' && (
           <ProtectedRoute title="Traveler Portal & Concierge" description="Sign in to view your luxury itinerary reservations, concierge messages, and rewards status.">
             <UserDashboard />
