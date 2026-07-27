@@ -1,0 +1,1 @@
+export { DocumentCenter } from './DocumentCenter';

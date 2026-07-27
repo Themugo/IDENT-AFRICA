@@ -1,0 +1,6 @@
+{
+  "name": "IDENT AFRICA",
+  "description": "An end-to-end authentic African travel and experience marketplace platform connecting travelers, suppliers, and administrators.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

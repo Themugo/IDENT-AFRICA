@@ -1,0 +1,1 @@
+export { AutomationCenter } from './AutomationCenter';

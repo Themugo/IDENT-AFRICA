@@ -1,0 +1,269 @@
+{
+  "common": {
+    "appName": "IDENT AFRICA",
+    "loading": "جاري التحميل...",
+    "error": "حدث خطأ",
+    "retry": "إعادة المحاولة",
+    "cancel": "إلغاء",
+    "confirm": "تأكيد",
+    "save": "حفظ",
+    "delete": "حذف",
+    "edit": "تعديل",
+    "view": "عرض",
+    "search": "بحث",
+    "filter": "تصفية",
+    "sort": "ترتيب",
+    "next": "التالي",
+    "previous": "السابق",
+    "back": "رجوع",
+    "close": "إغلاق",
+    "submit": "إرسال",
+    "required": "مطلوب",
+    "optional": "اختياري",
+    "seeAll": "عرض الكل",
+    "showMore": "عرض المزيد",
+    "showLess": "عرض أقل"
+  },
+  "nav": {
+    "home": "الرئيسية",
+    "destinations": "الوجهات",
+    "packages": "الباقات",
+    "experiences": "التجارب",
+    "about": "من نحن",
+    "contact": "اتصل بنا",
+    "login": "تسجيل الدخول",
+    "register": "التسجيل",
+    "logout": "تسجيل الخروج",
+    "profile": "الملف الشخصي",
+    "bookings": "الحجوزات",
+    "favorites": "المفضلة",
+    "settings": "الإعدادات",
+    "help": "المساعدة"
+  },
+  "home": {
+    "hero": {
+      "title": "اكتشف عجائب أفريقيا",
+      "subtitle": "مغامرات السفاري والتجارب الثقافية والرحلات لا تُنسى",
+      "searchPlaceholder": "أين تريد أن تذهب؟",
+      "cta": "استكشف الآن"
+    },
+    "featured": {
+      "title": "الوجهات المميزة",
+      "subtitle": "استكشف أشهر الوجهات الأفريقية"
+    },
+    "popular": {
+      "title": "الباقات الشائعة",
+      "subtitle": "اكتشف أفضل تجارب السفاري"
+    },
+    "testimonials": {
+      "title": "ماذا يقول المسافرون",
+      "subtitle": "قصص حقيقية من مغامرين حقيقيين"
+    },
+    "newsletter": {
+      "title": "ابق على اطلاع",
+      "subtitle": "احصل على عروض حصرية وإلهام السفر",
+      "placeholder": "أدخل بريدك الإلكتروني",
+      "cta": "اشترك"
+    }
+  },
+  "destinations": {
+    "title": "الوجهات",
+    "subtitle": "استكشف جمال أفريقيا",
+    "featured": "الوجهات المميزة",
+    "all": "جميع الوجهات",
+    "regions": {
+      "east": "شرق أفريقيا",
+      "west": "غرب أفريقيا",
+      "southern": "جنوب أفريقيا",
+      "north": "شمال أفريقيا",
+      "central": "وسط أفريقيا"
+    },
+    "filters": {
+      "region": "المنطقة",
+      "country": "البلد",
+      "interests": "الاهتمامات",
+      "budget": "الميزانية",
+      "duration": "المدة",
+      "rating": "التقييم"
+    },
+    "sort": {
+      "popularity": "الأكثر شعبية",
+      "rating": "الأعلى تقييماً",
+      "priceAsc": "السعر: من الأقل للأعلى",
+      "priceDesc": "السعر: من الأعلى للأقل"
+    },
+    "details": {
+      "overview": "نظرة عامة",
+      "highlights": "أبرز المعالم",
+      "itinerary": "البرنامج",
+      "includes": "ما يشمله",
+      "reviews": "التقييمات",
+      "faq": "الأسئلة الشائعة",
+      "bookNow": "احجز الآن"
+    }
+  },
+  "packages": {
+    "title": "باقات السفاري",
+    "subtitle": "اعثر على مغامرتك الأفريقية المثالية",
+    "types": {
+      "safari": "سفاري",
+      "beach": "شاطئ",
+      "cultural": "ثقافي",
+      "adventure": "مغامرة",
+      "luxury": "فاخر",
+      "budget": "اقتصادي"
+    },
+    "filters": {
+      "type": "نوع الباقة",
+      "duration": "المدة",
+      "priceRange": "نطاق السعر",
+      "accommodation": "الإقامة",
+      "activities": "الأنشطة"
+    }
+  },
+  "booking": {
+    "title": "احجز مغامرتك",
+    "steps": {
+      "select": "اختر التواريخ",
+      "travelers": "المسافرون",
+      "details": "بياناتك",
+      "payment": "الدفع",
+      "confirm": "التأكيد"
+    },
+    "form": {
+      "firstName": "الاسم الأول",
+      "lastName": "اسم العائلة",
+      "email": "البريد الإلكتروني",
+      "phone": "رقم الهاتف",
+      "nationality": "الجنسية",
+      "specialRequests": "طلبات خاصة"
+    },
+    "summary": {
+      "title": "ملخص الحجز",
+      "subtotal": "المجموع الفرعي",
+      "taxes": "الضرائب والرسوم",
+      "total": "المجموع",
+      "deposit": "عربون اليوم"
+    },
+    "status": {
+      "pending": "قيد الانتظار",
+      "confirmed": "مؤكد",
+      "cancelled": "ملغى",
+      "completed": "مكتمل"
+    },
+    "confirmation": {
+      "title": "تم تأكيد الحجز!",
+      "message": "مغامرتك في انتظارك. تحقق من بريدك الإلكتروني للتفاصيل.",
+      "bookingRef": "رقم الحجز"
+    }
+  },
+  "auth": {
+    "login": {
+      "title": "مرحباً بعودتك",
+      "subtitle": "سجل الدخول للمتابعة",
+      "email": "البريد الإلكتروني",
+      "password": "كلمة المرور",
+      "rememberMe": "تذكرني",
+      "forgotPassword": "نسيت كلمة المرور؟",
+      "submit": "تسجيل الدخول",
+      "noAccount": "ليس لديك حساب؟",
+      "signUp": "سجل"
+    },
+    "register": {
+      "title": "إنشاء حساب",
+      "subtitle": "ابدأ مغامرتك الأفريقية",
+      "name": "الاسم الكامل",
+      "email": "البريد الإلكتروني",
+      "password": "كلمة المرور",
+      "confirmPassword": "تأكيد كلمة المرور",
+      "submit": "إنشاء حساب",
+      "hasAccount": "لديك حساب بالفعل؟",
+      "signIn": "تسجيل الدخول"
+    },
+    "reset": {
+      "title": "إعادة تعيين كلمة المرور",
+      "subtitle": "سنرسل لك رابط إعادة التعيين",
+      "submit": "إرسال الرابط",
+      "backToLogin": "العودة لتسجيل الدخول"
+    }
+  },
+  "profile": {
+    "title": "ملفي الشخصي",
+    "tabs": {
+      "personal": "المعلومات الشخصية",
+      "preferences": "التفضيلات",
+      "travelHistory": "سجل السفر",
+      "documents": "المستندات"
+    },
+    "form": {
+      "name": "الاسم الكامل",
+      "email": "البريد الإلكتروني",
+      "phone": "الهاتف",
+      "nationality": "الجنسية",
+      "dateOfBirth": "تاريخ الميلاد",
+      "passportNumber": "رقم جواز السفر",
+      "passportExpiry": "انتهاء جواز السفر"
+    },
+    "preferences": {
+      "title": "تفضيلات السفر",
+      "interests": "الاهتمامات",
+      "travelStyle": "أسلوب السفر",
+      "budget": "نطاق الميزانية",
+      "accommodation": "تفضيل الإقامة"
+    }
+  },
+  "ai": {
+    "title": "مساعد السفر الذكي",
+    "subtitle": "الخدمة الشخصية لمغامراتك الأفريقية",
+    "placeholder": "اسألني أي شيء عن السفر في أفريقيا...",
+    "examples": {
+      "title": "جرب أن تسأل:",
+      "items": [
+        "ما أفضل وقت لزيارة كينيا؟",
+        "سفاري بأقل من 2000 دولار للعائلات",
+        "رحلة رومانسية في زنجبار"
+      ]
+    },
+    "suggestions": [
+      "ما هي أفضل وجهات السفاري؟",
+      "أخبرني عن ماساي مارا",
+      "خطط لرحلة 7 أيام في تنزانيا"
+    ]
+  },
+  "footer": {
+    "tagline": "بوابتك إلى تجارب أفريقية أصيلة",
+    "quickLinks": "روابط سريعة",
+    "support": "الدعم",
+    "legal": "القانون",
+    "contact": {
+      "title": "اتصل بنا",
+      "email": "info@identafrica.com",
+      "phone": "+254 700 123 456"
+    },
+    "social": {
+      "title": "تابعنا"
+    },
+    "copyright": "© 2025 IDENT AFRICA. جميع الحقوق محفوظة."
+  },
+  "errors": {
+    "required": "هذا الحقل مطلوب",
+    "invalidEmail": "يرجى إدخال بريد إلكتروني صالح",
+    "invalidPhone": "يرجى إدخال رقم هاتف صالح",
+    "passwordMismatch": "كلمات المرور غير متطابقة",
+    "passwordTooShort": "يجب أن تتكون كلمة المرور من 8 أحرف على الأقل",
+    "serverError": "حدث خطأ ما. يرجى المحاولة مرة أخرى.",
+    "networkError": "خطأ في الشبكة. يرجى التحقق من اتصالك.",
+    "notFound": "الصفحة غير موجودة",
+    "unauthorized": "يرجى تسجيل الدخول للمتابعة"
+  },
+  "accessibility": {
+    "skipToMain": "انتقل إلى المحتوى الرئيسي",
+    "openMenu": "فتح القائمة",
+    "closeMenu": "إغلاق القائمة",
+    "selectLanguage": "اختر اللغة",
+    "previousMonth": "الشهر السابق",
+    "nextMonth": "الشهر التالي",
+    "openDropdown": "فتح القائمة المنسدلة",
+    "closeDropdown": "إغلاق القائمة المنسدلة"
+  }
+}
