@@ -3,9 +3,10 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import React from 'react';
+import React, { useEffect } from 'react';
 import { AppProvider, useApp } from './context/AppContext';
 import { ErrorBoundary } from './components/common/ErrorBoundary';
+import { reportWebVitals } from './utils/webVitals';
 import { Header } from './components/common/Header';
 import { Footer } from './components/common/Footer';
 // Navigation Components
@@ -130,6 +131,10 @@ const MainContent: React.FC = () => {
 };
 
 export default function App() {
+  useEffect(() => {
+    reportWebVitals();
+  }, []);
+
   return (
     <ErrorBoundary>
       <AppProvider>

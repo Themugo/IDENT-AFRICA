@@ -37,6 +37,16 @@ import migrationRouter from './src/routes/migration.js';
 // Auth Middleware
 import { authenticate, optionalAuth, authorize } from './src/auth/index.js';
 
+// Rate Limiting Middleware
+import { 
+  apiLimiter, 
+  authLimiter, 
+  searchLimiter, 
+  aiPlannerLimiter,
+  bookingLimiter,
+  paymentLimiter 
+} from './src/middleware/rateLimit.js';
+
 // Monitoring services
 import { logger } from './src/services/monitoring/logger.js';
 import { performanceMonitor, performanceTracker } from './src/services/monitoring/performance.js';
@@ -174,19 +184,22 @@ async function startServer() {
   // Initialize database connection
   await initDatabase();
 
-  // Register REST API routes
+  // Apply general API rate limiting
+  app.use('/api/', apiLimiter);
+
+  // Register REST API routes with specific rate limiters
+  app.use('/api/search', searchLimiter, optionalAuth, searchRouter);
+  app.use('/api/bookings', bookingLimiter, optionalAuth, bookingsRouter);
+  app.use('/api/payments', paymentLimiter, optionalAuth, paymentsRouter);
   app.use('/api/destinations', optionalAuth, destinationsRouter);
   app.use('/api/lodges', optionalAuth, lodgesRouter);
-  app.use('/api/bookings', optionalAuth, bookingsRouter);
   app.use('/api/users', optionalAuth, usersRouter);
-  app.use('/api/payments', optionalAuth, paymentsRouter);
   app.use('/api/suppliers', optionalAuth, suppliersRouter);
   app.use('/api/admin', optionalAuth, adminRouter);
   app.use('/api/cms', optionalAuth, cmsRouter);
   app.use('/api/page-builder', optionalAuth, pageBuilderRouter);
   app.use('/api/media', optionalAuth, mediaRouter);
   app.use('/api/pricing', optionalAuth, pricingRouter);
-  app.use('/api/search', optionalAuth, searchRouter);
   app.use('/api/inventory', optionalAuth, inventoryRouter);
   app.use('/api/notifications', optionalAuth, notificationsRouter);
   app.use('/api/communication', optionalAuth, communicationRouter);
@@ -618,7 +631,7 @@ Ensure all prices sum up logically in costBreakdown, lodging aligns with duratio
   // =============================================================================
   
   // POST /api/auth/register - User registration
-  app.post('/api/auth/register', async (req: Request, res: Response) => {
+  app.post('/api/auth/register', authLimiter, async (req: Request, res: Response) => {
     try {
       const { name, email, password, phone, role = 'traveler' } = req.body;
       
@@ -664,7 +677,7 @@ Ensure all prices sum up logically in costBreakdown, lodging aligns with duratio
   });
 
   // POST /api/auth/login - User login
-  app.post('/api/auth/login', async (req: Request, res: Response) => {
+  app.post('/api/auth/login', authLimiter, async (req: Request, res: Response) => {
     try {
       const { email, password } = req.body;
 
