@@ -12,6 +12,7 @@ import { Footer } from './components/common/Footer';
 import { BreadcrumbBar } from './components/navigation/BreadcrumbBar';
 import { StickyInquiryButton } from './components/navigation/StickyInquiryButton';
 import { QuickNavDrawer } from './components/navigation/QuickNavDrawer';
+import { MobileBottomNav } from './components/navigation/MobileBottomNav';
 // CRO-Optimized Homepage
 import { ConversionHome } from './components/home/ConversionHome';
 // Luxury Brand Components (for detailed exploration pages)
@@ -113,6 +114,9 @@ const MainContent: React.FC = () => {
       </main>
 
       <Footer />
+
+      {/* Mobile-First Bottom Navigation with WhatsApp Concierge */}
+      <MobileBottomNav />
 
       {/* Enterprise Navigation Elements */}
       <StickyInquiryButton />

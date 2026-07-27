@@ -528,3 +528,127 @@ p {
     0 4px 6px -2px rgba(0, 0, 0, 0.05),
     0 25px 50px -12px rgba(200, 154, 75, 0.25);
 }
+
+/* ==================== MOBILE-FIRST PERFORMANCE OPTIMIZATIONS ==================== */
+
+/* GPU acceleration for smooth animations */
+.gpu-accelerated {
+  transform: translateZ(0);
+  will-change: transform;
+  backface-visibility: hidden;
+}
+
+/* Reduced motion for accessibility */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+/* Touch-friendly tap targets - minimum 44px */
+.touch-target {
+  min-height: 44px;
+  min-width: 44px;
+}
+
+/* Safe area padding for modern mobile devices */
+.safe-area-pb {
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+}
+
+.safe-area-pt {
+  padding-top: env(safe-area-inset-top, 0px);
+}
+
+/* Mobile-first responsive typography */
+@media (max-width: 640px) {
+  html {
+    font-size: 15px;
+  }
+  
+  /* Prevent horizontal overflow */
+  body {
+    overflow-x: hidden;
+  }
+  
+  /* Optimize images for mobile */
+  img {
+    max-width: 100%;
+    height: auto;
+  }
+}
+
+/* iOS-specific fixes */
+@supports (-webkit-touch-callout: none) {
+  /* Fix for iOS Safari viewport height */
+  .min-h-screen {
+    min-height: -webkit-fill-available;
+  }
+}
+
+/* Prevent overscroll bounce on iOS */
+.overscroll-none {
+  overscroll-behavior: none;
+}
+
+/* Performance: reduce paint areas */
+.content-visibility-auto {
+  content-visibility: auto;
+  contain-intrinsic-size: 0 500px;
+}
+
+/* Loading states */
+.skeleton {
+  background: linear-gradient(
+    90deg,
+    rgba(200, 154, 75, 0.1) 25%,
+    rgba(200, 154, 75, 0.2) 50%,
+    rgba(200, 154, 75, 0.1) 75%
+  );
+  background-size: 200% 100%;
+  animation: skeleton-loading 1.5s infinite;
+}
+
+@keyframes skeleton-loading {
+  0% {
+    background-position: 200% 0;
+  }
+  100% {
+    background-position: -200% 0;
+  }
+}
+
+/* Optimized backdrop blur for mobile */
+@supports (backdrop-filter: blur(20px)) {
+  .backdrop-blur-luxury {
+    backdrop-filter: blur(20px) saturate(150%);
+  }
+}
+
+/* Fallback for browsers without backdrop-filter */
+@supports not (backdrop-filter: blur(20px)) {
+  .backdrop-blur-luxury {
+    background-color: rgba(26, 21, 16, 0.95);
+  }
+}
+
+/* Prefers dark color scheme */
+@media (prefers-color-scheme: dark) {
+  :root {
+    color-scheme: dark;
+  }
+}
+
+/* Print styles - hide mobile nav when printing */
+@media print {
+  .mobile-bottom-nav,
+  .sticky-inquiry-button,
+  .whatsapp-floating-button {
+    display: none !important;
+  }
+}

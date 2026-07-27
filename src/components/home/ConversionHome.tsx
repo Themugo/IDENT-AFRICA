@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
+import { motion, useScroll, useTransform, AnimatePresence } from 'motion/react';
 import { useApp } from '../../context/AppContext';
 import { 
   Compass, MapPin, Calendar, Phone, Mail, ChevronRight, 
@@ -6,22 +7,78 @@ import {
   ArrowRight, Play, MessageCircle, Globe, PawPrint, Sun
 } from 'lucide-react';
 
+// ==================== ANIMATED SECTION WRAPPER ====================
+interface AnimatedSectionProps {
+  children: React.ReactNode;
+  className?: string;
+  delay?: number;
+}
+
+const AnimatedSection: React.FC<AnimatedSectionProps> = ({ 
+  children, 
+  className = '', 
+  delay = 0 
+}) => {
+  const ref = useRef<HTMLDivElement>(null);
+  const [isInView, setIsInView] = useState(false);
+
+  useEffect(() => {
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        if (entry.isIntersecting) {
+          setIsInView(true);
+        }
+      },
+      { threshold: 0.1, rootMargin: '0px 0px -50px 0px' }
+    );
+
+    if (ref.current) {
+      observer.observe(ref.current);
+    }
+
+    return () => observer.disconnect();
+  }, []);
+
+  return (
+    <motion.div
+      ref={ref}
+      initial={{ opacity: 0, y: 40 }}
+      animate={isInView ? { opacity: 1, y: 0 } : { opacity: 0, y: 40 }}
+      transition={{ duration: 0.7, delay, ease: [0.16, 1, 0.3, 1] }}
+      className={className}
+    >
+      {children}
+    </motion.div>
+  );
+};
+
 // ==================== CONVERSION HERO ====================
 const ConversionHero: React.FC = () => {
   const { navigateTo } = useApp();
   const [isVisible, setIsVisible] = useState(false);
+  const heroRef = useRef<HTMLElement>(null);
+  
+  // Parallax scroll effect
+  const { scrollY } = useScroll();
+  const backgroundY = useTransform(scrollY, [0, 500], [0, 150]);
+  const contentY = useTransform(scrollY, [0, 500], [0, 80]);
+  const opacity = useTransform(scrollY, [0, 300], [1, 0.3]);
   
   useEffect(() => {
     setTimeout(() => setIsVisible(true), 100);
   }, []);
 
   return (
-    <section className="relative min-h-[85vh] flex items-center overflow-hidden">
-      {/* Background Image */}
-      <div 
-        className="absolute inset-0 bg-cover bg-center"
+    <section 
+      ref={heroRef}
+      className="relative min-h-[85vh] flex items-center overflow-hidden"
+    >
+      {/* Parallax Background Image */}
+      <motion.div 
+        className="absolute inset-0 bg-cover bg-center scale-110"
         style={{
-          backgroundImage: `url('https://images.unsplash.com/photo-1516426122078-c23e76319801?auto=format&fit=crop&w=3000&q=85')`
+          backgroundImage: `url('https://images.unsplash.com/photo-1516426122078-c23e76319801?auto=format&fit=crop&w=3000&q=85')`,
+          y: backgroundY
         }}
       />
       
@@ -30,102 +87,222 @@ const ConversionHero: React.FC = () => {
       <div className="absolute inset-0 bg-gradient-to-t from-[#0a0806] via-transparent to-[#0a0806]/60" />
       <div className="absolute inset-0 bg-gradient-to-b from-transparent via-[#C89A4B]/5 to-transparent" />
       
-      {/* Content */}
-      <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-20 w-full">
-        <div className={`max-w-3xl transition-all duration-1000 ${isVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-12'}`}>
-          
-          {/* Pre-heading */}
-          <div className="flex items-center gap-3 mb-6">
-            <div className="w-12 h-px bg-[#C89A4B]" />
+      {/* Animated grain overlay */}
+      <motion.div 
+        className="absolute inset-0 opacity-[0.03] pointer-events-none"
+        style={{
+          opacity,
+          backgroundImage: `url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)'/%3E%3C/svg%3E")`
+        }}
+      />
+      
+      {/* Content with Parallax */}
+      <motion.div 
+        className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-20 w-full"
+        style={{ y: contentY }}
+      >
+        <motion.div 
+          className="max-w-3xl"
+          initial={{ opacity: 0 }}
+          animate={{ opacity: isVisible ? 1 : 0 }}
+          transition={{ duration: 1, ease: 'easeOut' }}
+        >
+          {/* Pre-heading - Staggered animation */}
+          <motion.div 
+            className="flex items-center gap-3 mb-6"
+            initial={{ opacity: 0, x: -30 }}
+            animate={{ opacity: isVisible ? 1 : 0, x: isVisible ? 0 : -30 }}
+            transition={{ duration: 0.8, delay: 0.2 }}
+          >
+            <motion.div 
+              className="w-12 h-px bg-[#C89A4B]"
+              initial={{ scaleX: 0 }}
+              animate={{ scaleX: isVisible ? 1 : 0 }}
+              transition={{ duration: 0.6, delay: 0.4 }}
+            />
             <span className="text-[10px] font-cinzel text-[#C89A4B] tracking-[0.4em] uppercase">
               East Africa's Premier Safari Curator
             </span>
-          </div>
+          </motion.div>
           
-          {/* Main Headline */}
-          <h1 className="font-cormorant text-5xl sm:text-6xl md:text-7xl lg:text-8xl font-light text-[#F4E8D5] leading-[0.95] mb-6">
-            Your East African
-            <span className="block italic text-[#C89A4B]">Safari Journey</span>
-            <span className="block text-[#F4E8D5]">Awaits</span>
-          </h1>
+          {/* Main Headline - Character by character reveal */}
+          <motion.h1 
+            className="font-cormorant text-5xl sm:text-6xl md:text-7xl lg:text-8xl font-light text-[#F4E8D5] leading-[0.95] mb-6"
+            initial={{ opacity: 0, y: 30 }}
+            animate={{ opacity: isVisible ? 1 : 0, y: isVisible ? 0 : 30 }}
+            transition={{ duration: 0.8, delay: 0.3 }}
+          >
+            <motion.span 
+              className="block"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: isVisible ? 1 : 0 }}
+              transition={{ duration: 0.5, delay: 0.4 }}
+            >
+              Your East African
+            </motion.span>
+            <motion.span 
+              className="block italic text-[#C89A4B]"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: isVisible ? 1 : 0 }}
+              transition={{ duration: 0.5, delay: 0.6 }}
+            >
+              Safari Journey
+            </motion.span>
+            <motion.span 
+              className="block"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: isVisible ? 1 : 0 }}
+              transition={{ duration: 0.5, delay: 0.8 }}
+            >
+              Awaits
+            </motion.span>
+          </motion.h1>
           
           {/* Sub-headline */}
-          <p className="text-lg sm:text-xl text-[#D3C5AE] font-light max-w-xl mb-10 leading-relaxed">
+          <motion.p 
+            className="text-lg sm:text-xl text-[#D3C5AE] font-light max-w-xl mb-10 leading-relaxed"
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: isVisible ? 1 : 0, y: isVisible ? 0 : 20 }}
+            transition={{ duration: 0.8, delay: 0.5 }}
+          >
             From the Serengeti plains to Rwanda's misty forests — let our expert rangers design your perfect expedition.
-          </p>
+          </motion.p>
           
-          {/* PRIMARY CTAs - The 3 Conversion Goals */}
-          <div className="flex flex-col sm:flex-row gap-4 mb-12">
+          {/* PRIMARY CTAs - Staggered animation */}
+          <motion.div 
+            className="flex flex-col sm:flex-row gap-4 mb-12"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: isVisible ? 1 : 0 }}
+            transition={{ duration: 0.8, delay: 0.7 }}
+          >
             {/* Primary CTA: Plan My Safari */}
-            <button
+            <motion.button
               onClick={() => navigateTo('ai-planner')}
-              className="group relative flex items-center gap-4 px-8 py-5 bg-[#C89A4B] text-[#1a1008] rounded-xl overflow-hidden shadow-2xl hover:shadow-[#C89A4B]/30 transition-all duration-500"
+              className="group relative flex items-center gap-4 px-8 py-5 bg-[#C89A4B] text-[#1a1008] rounded-xl overflow-hidden shadow-2xl hover:shadow-[#C89A4B]/30 transition-all duration-500 active:scale-[0.98]"
+              whileHover={{ y: -4 }}
+              whileTap={{ scale: 0.98 }}
             >
-              <div className="absolute inset-0 bg-[#D6B06A] transform -translate-x-full group-hover:translate-x-0 transition-transform duration-500" />
+              <motion.div 
+                className="absolute inset-0 bg-[#D6B06A] transform -translate-x-full"
+                animate={{ x: ['-100%', '0%'] }}
+                transition={{ duration: 0.5 }}
+              />
               <div className="relative z-10 flex items-center gap-4">
-                <div className="w-12 h-12 rounded-full bg-[#1a1008]/20 flex items-center justify-center">
+                <motion.div 
+                  className="w-12 h-12 rounded-full bg-[#1a1008]/20 flex items-center justify-center"
+                  whileHover={{ rotate: 180 }}
+                  transition={{ duration: 0.5 }}
+                >
                   <Sparkles className="w-6 h-6" />
-                </div>
+                </motion.div>
                 <div className="text-left">
                   <span className="text-[10px] font-mono uppercase tracking-wider opacity-70 block">Start Now</span>
                   <span className="font-cinzel font-bold text-lg tracking-wide">Plan My Safari</span>
                 </div>
-                <ArrowRight className="w-5 h-5 ml-4 group-hover:translate-x-1 transition-transform" />
+                <motion.div
+                  animate={{ x: [0, 5, 0] }}
+                  transition={{ duration: 2, repeat: Infinity }}
+                >
+                  <ArrowRight className="w-5 h-5 ml-4" />
+                </motion.div>
               </div>
-            </button>
+            </motion.button>
             
             {/* Secondary CTA: Explore Destinations */}
-            <button
+            <motion.button
               onClick={() => navigateTo('destinations')}
-              className="group flex items-center gap-4 px-8 py-5 bg-[#2D2621]/80 backdrop-blur-sm border border-[#C89A4B]/50 text-[#F4E8D5] rounded-xl hover:bg-[#463D34] hover:border-[#C89A4B] transition-all duration-500"
+              className="group flex items-center gap-4 px-8 py-5 bg-[#2D2621]/80 backdrop-blur-sm border border-[#C89A4B]/50 text-[#F4E8D5] rounded-xl hover:bg-[#463D34] hover:border-[#C89A4B] transition-all duration-500 active:scale-[0.98]"
+              whileHover={{ y: -4 }}
+              whileTap={{ scale: 0.98 }}
             >
-              <div className="w-12 h-12 rounded-full bg-[#C89A4B]/20 flex items-center justify-center">
+              <motion.div 
+                className="w-12 h-12 rounded-full bg-[#C89A4B]/20 flex items-center justify-center"
+                whileHover={{ scale: 1.1 }}
+              >
                 <MapPin className="w-6 h-6 text-[#C89A4B]" />
-              </div>
+              </motion.div>
               <div className="text-left">
                 <span className="text-[10px] font-mono uppercase tracking-wider text-[#D3C5AE] block">Discover</span>
                 <span className="font-cinzel font-bold text-base tracking-wide">Explore Destinations</span>
               </div>
-            </button>
+            </motion.button>
             
             {/* Tertiary CTA: Speak With Expert */}
-            <button
+            <motion.button
               onClick={() => navigateTo('ai-planner')}
-              className="group flex items-center gap-4 px-8 py-5 bg-transparent border border-[#C89A4B]/40 text-[#F4E8D5] rounded-xl hover:border-[#C89A4B] hover:bg-[#C89A4B]/10 transition-all duration-500"
+              className="group flex items-center gap-4 px-8 py-5 bg-transparent border border-[#C89A4B]/40 text-[#F4E8D5] rounded-xl hover:border-[#C89A4B] hover:bg-[#C89A4B]/10 transition-all duration-500 active:scale-[0.98]"
+              whileHover={{ y: -4 }}
+              whileTap={{ scale: 0.98 }}
             >
-              <div className="w-12 h-12 rounded-full border border-[#C89A4B]/40 flex items-center justify-center">
+              <motion.div 
+                className="w-12 h-12 rounded-full border border-[#C89A4B]/40 flex items-center justify-center"
+                whileHover={{ borderColor: '#C89A4B' }}
+              >
                 <Phone className="w-5 h-5 text-[#C89A4B]" />
-              </div>
+              </motion.div>
               <div className="text-left">
                 <span className="text-[10px] font-mono uppercase tracking-wider text-[#D3C5AE] block">Get Advice</span>
                 <span className="font-cinzel font-bold text-base tracking-wide">Speak With Expert</span>
               </div>
-            </button>
-          </div>
+            </motion.button>
+          </motion.div>
           
-          {/* Trust Indicators */}
-          <div className="flex flex-wrap items-center gap-8 text-[#D3C5AE]">
-            <div className="flex items-center gap-2">
+          {/* Trust Indicators - Staggered fade in */}
+          <motion.div 
+            className="flex flex-wrap items-center gap-8 text-[#D3C5AE]"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: isVisible ? 1 : 0 }}
+            transition={{ duration: 0.8, delay: 1 }}
+          >
+            <motion.div 
+              className="flex items-center gap-2"
+              whileHover={{ scale: 1.05, color: '#4F6848' }}
+              transition={{ duration: 0.2 }}
+            >
               <Shield className="w-4 h-4 text-[#4F6848]" />
               <span className="text-sm">100% Ranger Verified</span>
-            </div>
-            <div className="flex items-center gap-2">
+            </motion.div>
+            <motion.div 
+              className="flex items-center gap-2"
+              whileHover={{ scale: 1.05, color: '#C89A4B' }}
+              transition={{ duration: 0.2 }}
+            >
               <Award className="w-4 h-4 text-[#C89A4B]" />
               <span className="text-sm">4.9★ Average Rating</span>
-            </div>
-            <div className="flex items-center gap-2">
-              <Users className="w-4 h-4 text-[#D3C5AE]" />
+            </motion.div>
+            <motion.div 
+              className="flex items-center gap-2"
+              whileHover={{ scale: 1.05 }}
+              transition={{ duration: 0.2 }}
+            >
+              <Users className="w-4 h-4" />
               <span className="text-sm">3,200+ Expeditions</span>
-            </div>
-          </div>
-        </div>
-      </div>
+            </motion.div>
+          </motion.div>
+        </motion.div>
+      </motion.div>
       
-      {/* Scroll Indicator */}
-      <div className="absolute bottom-8 left-1/2 -translate-x-1/2 flex flex-col items-center gap-2 animate-bounce">
-        <span className="text-[10px] font-cinzel text-[#C89A4B] tracking-[0.3em] uppercase">Scroll</span>
-        <ChevronRight className="w-5 h-5 text-[#C89A4B] rotate-90" />
-      </div>
+      {/* Scroll Indicator with bounce animation */}
+      <motion.div 
+        className="absolute bottom-8 left-1/2 -translate-x-1/2 flex flex-col items-center gap-2"
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        transition={{ delay: 1.2 }}
+      >
+        <motion.span 
+          className="text-[10px] font-cinzel text-[#C89A4B] tracking-[0.3em] uppercase"
+          animate={{ opacity: [0.5, 1, 0.5] }}
+          transition={{ duration: 2, repeat: Infinity }}
+        >
+          Scroll
+        </motion.span>
+        <motion.div
+          animate={{ y: [0, 8, 0] }}
+          transition={{ duration: 1.5, repeat: Infinity, ease: 'easeInOut' }}
+        >
+          <ChevronRight className="w-5 h-5 text-[#C89A4B] rotate-90" />
+        </motion.div>
+      </motion.div>
     </section>
   );
 };
