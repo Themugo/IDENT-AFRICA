@@ -55,15 +55,30 @@ esbuild                 - Server bundling
 | seo | Components | 2 | Feature |
 | media | Routes, components | 2 | Feature |
 
-### 2.2 Unused Services
+### 2.2 Removed Services (2026-07-27)
 
 | Service | Files | Reason |
 |---------|-------|--------|
-| analytics | 1 | Not imported |
-| documents | 3 | Not imported |
-| inventory | 3 | Not imported |
-| mobile | 5 | Deprecated |
-| payments | providers/ | Not imported |
+| analytics | 1 | ✅ REMOVED |
+| documents | 3 | ✅ REMOVED |
+| inventory | 3 | ✅ REMOVED |
+| mobile | 5 | ✅ REMOVED |
+| payments | providers/ | ✅ REMOVED |
+
+### 2.3 Current Active Services
+
+| Service | Dependencies | Type |
+|---------|--------------|------|
+| ai | 51 | Core |
+| search | 11 | Core |
+| pricing | 8 | Core |
+| recommendations | 5 | Feature |
+| seo | 2 | Feature |
+| media | 2 | Feature |
+| journey | 1 | Feature |
+| notifications | 1 | Feature |
+| i18n | 1 | Feature |
+| monitoring | Used by server | Core |
 
 ---
 
@@ -308,15 +323,18 @@ services/monitoring/
 
 ---
 
-## 10. Unused Code Statistics
+## 10. Unused Code Statistics (Post-Cleanup)
 
-| Category | Total | Used | Unused | Percentage |
-|----------|-------|------|--------|------------|
-| Components | 136 | 104 | 32 | 24% |
-| Services | 15 | 10 | 5 | 33% |
-| Hooks | 1 | 0 | 1 | 100% |
-| Routes | 23 | 23 | 0 | 0% |
+| Category | Before | Removed | After | Percentage |
+|----------|--------|---------|-------|------------|
+| Components | 136 | 12 | 124 | 8% removed |
+| Services | 15 | 5 | 10 | 33% removed |
+| Hooks | 1 | 1 | 0 | 100% removed |
+| Routes | 23 | 0 | 23 | 0% |
+| Documentation | 25 | 7 | 18 | 28% archived |
 
 ---
 
-**Report Generated:** 2026-07-27
+**Report Generated:** 2026-07-27  
+**Last Updated:** 2026-07-27  
+**Status:** Cleanup Complete ✅
