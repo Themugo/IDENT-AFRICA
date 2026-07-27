@@ -1,12 +1,14 @@
 import React, { useState, useEffect } from 'react';
 import { useApp } from '../../context/AppContext';
-import { MessageCircle, X, Send, Phone, Mail, ChevronUp } from 'lucide-react';
+import { motion, AnimatePresence } from 'motion/react';
+import { MessageCircle, X, Send, Phone, Mail, ChevronUp, Sparkles } from 'lucide-react';
 
 interface QuickContact {
   icon: React.ReactNode;
   label: string;
   value: string;
   href: string;
+  color?: string;
 }
 
 export const StickyInquiryButton: React.FC = () => {
@@ -37,22 +39,25 @@ export const StickyInquiryButton: React.FC = () => {
 
   const quickContacts: QuickContact[] = [
     {
-      icon: <Phone className="w-4 h-4" />,
+      icon: <Phone className="w-5 h-5" />,
       label: 'Call Us',
       value: '+254 20 800 SAFARI',
-      href: 'tel:+2542080072734'
+      href: 'tel:+2542080072734',
+      color: '#4ADE80'
     },
     {
-      icon: <Mail className="w-4 h-4" />,
+      icon: <Mail className="w-5 h-5" />,
       label: 'Email',
       value: 'lounge@identafrica.com',
-      href: 'mailto:lounge@identafrica.com'
+      href: 'mailto:lounge@identafrica.com',
+      color: '#60A5FA'
     },
     {
-      icon: <MessageCircle className="w-4 h-4" />,
+      icon: <MessageCircle className="w-5 h-5" />,
       label: 'WhatsApp',
       value: 'Start Chat',
-      href: 'https://wa.me/2542080072734'
+      href: 'https://wa.me/2542080072734',
+      color: '#25D366'
     }
   ];
 
@@ -64,109 +69,177 @@ export const StickyInquiryButton: React.FC = () => {
   if (!isVisible) return null;
 
   return (
-    <div 
+    <motion.div 
+      initial={{ scale: 0, opacity: 0 }}
+      animate={{ 
+        scale: isVisible ? 1 : 0, 
+        opacity: isVisible ? 1 : 0 
+      }}
+      transition={{ type: 'spring', stiffness: 300, damping: 25 }}
       className={`
         fixed bottom-6 right-6 z-[60] flex flex-col items-end gap-3
-        transition-all duration-500 ease-out
         ${isMinimized ? 'opacity-50 hover:opacity-100' : 'opacity-100'}
       `}
     >
-      {/* Expanded Contact Options */}
-      <div 
-        className={`
-          flex flex-col gap-3 mb-3 transition-all duration-500 ease-out
-          ${isExpanded ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-8 pointer-events-none'}
-        `}
-      >
-        {/* Quick Contacts */}
-        {quickContacts.map((contact, idx) => (
-          <a
-            key={idx}
-            href={contact.href}
-            target={contact.href.startsWith('http') ? '_blank' : undefined}
-            rel={contact.href.startsWith('http') ? 'noopener noreferrer' : undefined}
-            className="group flex items-center gap-3 bg-[#FFF8EC] text-[#2A1E17] rounded-full pl-4 pr-5 py-3 shadow-xl border border-[#C89A4B]/40 hover:border-[#C89A4B] hover:shadow-2xl transition-all"
-            style={{ animationDelay: `${idx * 50}ms` }}
+      {/* Expanded Contact Options with Staggered Animation */}
+      <AnimatePresence>
+        {isExpanded && (
+          <motion.div 
+            className="flex flex-col gap-3 mb-4"
+            initial={{ opacity: 0, y: 20, scale: 0.8 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            exit={{ opacity: 0, y: 20, scale: 0.8 }}
+            transition={{ type: 'spring', stiffness: 300, damping: 25 }}
           >
-            <div className="w-8 h-8 rounded-full bg-[#2D2621] flex items-center justify-center text-[#C89A4B] group-hover:bg-[#C89A4B] group-hover:text-[#1a1008] transition-colors">
-              {contact.icon}
-            </div>
-            <div className="text-right">
-              <span className="text-[10px] font-mono text-[#5A4738] block">{contact.label}</span>
-              <span className="text-xs font-bold">{contact.value}</span>
-            </div>
-          </a>
-        ))}
+            {/* Quick Contacts with Colored Icons */}
+            {quickContacts.map((contact, idx) => (
+              <motion.a
+                key={idx}
+                href={contact.href}
+                target={contact.href.startsWith('http') ? '_blank' : undefined}
+                rel={contact.href.startsWith('http') ? 'noopener noreferrer' : undefined}
+                initial={{ opacity: 0, x: 50, scale: 0.8 }}
+                animate={{ opacity: 1, x: 0, scale: 1 }}
+                whileHover={{ scale: 1.05, x: -5 }}
+                whileTap={{ scale: 0.95 }}
+                transition={{ 
+                  type: 'spring', 
+                  stiffness: 400, 
+                  damping: 25,
+                  delay: idx * 0.05
+                }}
+                className="group flex items-center gap-3 bg-[#FFF8EC] text-[#2A1E17] rounded-full pl-4 pr-6 py-3 shadow-2xl border border-[#C89A4B]/40 hover:border-[#C89A4B] transition-all"
+              >
+                <motion.div 
+                  className="w-10 h-10 rounded-full flex items-center justify-center text-white"
+                  style={{ backgroundColor: contact.color }}
+                  whileHover={{ rotate: 360 }}
+                  transition={{ duration: 0.5 }}
+                >
+                  {contact.icon}
+                </motion.div>
+                <div className="text-right">
+                  <span className="text-[10px] font-mono text-[#5A4738] block">{contact.label}</span>
+                  <span className="text-sm font-bold">{contact.value}</span>
+                </div>
+              </motion.a>
+            ))}
 
-        {/* AI Planner CTA */}
-        <button
-          onClick={handleInquiryClick}
-          className="flex items-center gap-3 bg-[#C89A4B] text-[#1a1008] rounded-full pl-4 pr-5 py-3 shadow-xl hover:bg-[#D6B06A] hover:shadow-2xl transition-all"
-        >
-          <div className="w-8 h-8 rounded-full bg-[#1a1008]/20 flex items-center justify-center">
-            <Send className="w-4 h-4" />
-          </div>
-          <div className="text-right">
-            <span className="text-[10px] font-mono text-[#1a1008]/70 block">Plan Your Safari</span>
-            <span className="text-xs font-bold">AI Concierge</span>
-          </div>
-        </button>
+            {/* AI Planner CTA with Premium Animation */}
+            <motion.button
+              onClick={handleInquiryClick}
+              initial={{ opacity: 0, x: 50, scale: 0.8 }}
+              animate={{ opacity: 1, x: 0, scale: 1 }}
+              whileHover={{ scale: 1.05, x: -5 }}
+              whileTap={{ scale: 0.95 }}
+              transition={{ 
+                type: 'spring', 
+                stiffness: 400, 
+                damping: 25,
+                delay: quickContacts.length * 0.05
+              }}
+              className="flex items-center gap-3 bg-gradient-to-r from-[#C89A4B] to-[#D6B06A] text-[#1a1008] rounded-full pl-4 pr-6 py-3 shadow-2xl hover:shadow-[0_8px_40px_rgba(200,154,75,0.5)] transition-all"
+            >
+              <motion.div 
+                className="w-10 h-10 rounded-full bg-[#1a1008]/20 flex items-center justify-center"
+                animate={{ rotate: [0, 360] }}
+                transition={{ duration: 2, repeat: Infinity, ease: 'linear' }}
+              >
+                <Sparkles className="w-5 h-5" />
+              </motion.div>
+              <div className="text-right">
+                <span className="text-[10px] font-mono text-[#1a1008]/70 block">Plan Your Safari</span>
+                <span className="text-sm font-bold">AI Concierge</span>
+              </div>
+            </motion.button>
 
-        {/* Close Button */}
-        <button
-          onClick={() => setIsExpanded(false)}
-          className="self-center p-2 rounded-full bg-[#2D2621] text-[#F4E8D5] hover:bg-[#C89A4B] hover:text-[#1a1008] transition-all shadow-lg"
-        >
-          <X className="w-4 h-4" />
-        </button>
-      </div>
+            {/* Close Button */}
+            <motion.button
+              onClick={() => setIsExpanded(false)}
+              initial={{ opacity: 0, scale: 0 }}
+              animate={{ opacity: 1, scale: 1 }}
+              whileHover={{ scale: 1.1, rotate: 90 }}
+              whileTap={{ scale: 0.9 }}
+              transition={{ delay: 0.2 }}
+              className="self-center p-3 rounded-full bg-[#2D2621] text-[#F4E8D5] hover:bg-[#C89A4B] hover:text-[#1a1008] transition-all shadow-lg"
+            >
+              <X className="w-5 h-5" />
+            </motion.button>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       {/* Main Toggle Button */}
       <div className="flex items-center gap-3">
         {/* Scroll to Top */}
-        <button
-          onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
-          className="p-3 rounded-full bg-[#2D2621] text-[#C89A4B] hover:bg-[#C89A4B] hover:text-[#1a1008] transition-all shadow-xl border border-[#C89A4B]/40 hover:border-[#C89A4B]"
-          title="Scroll to top"
-        >
-          <ChevronUp className="w-5 h-5" />
-        </button>
+        <AnimatePresence>
+          {!isExpanded && (
+            <motion.button
+              initial={{ scale: 0, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0, opacity: 0 }}
+              whileHover={{ scale: 1.1 }}
+              whileTap={{ scale: 0.9, rotate: -180 }}
+              onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
+              className="p-3 rounded-full bg-[#2D2621] text-[#C89A4B] hover:bg-[#C89A4B] hover:text-[#1a1008] shadow-xl border border-[#C89A4B]/40 hover:border-[#C89A4B] transition-all"
+              title="Scroll to top"
+            >
+              <ChevronUp className="w-5 h-5" />
+            </motion.button>
+          )}
+        </AnimatePresence>
 
         {/* Main Inquiry Button */}
-        <button
+        <motion.button
           onClick={() => setIsExpanded(!isExpanded)}
+          whileHover={{ scale: 1.05 }}
+          whileTap={{ scale: 0.95 }}
           className={`
-            group relative flex items-center gap-3 px-5 py-4 rounded-full shadow-2xl transition-all duration-500
+            group relative flex items-center gap-3 px-6 py-4 rounded-full shadow-2xl
             ${isExpanded 
               ? 'bg-[#2D2621] text-[#C89A4B]' 
-              : 'bg-[#C89A4B] text-[#1a1008] hover:bg-[#D6B06A]'
+              : 'bg-gradient-to-r from-[#C89A4B] to-[#B08235] text-[#1a1008] hover:shadow-[0_8px_40px_rgba(200,154,75,0.5)]'
             }
-            border-2 ${isExpanded ? 'border-[#C89A4B]' : 'border-transparent hover:border-[#D6B06A]'}
+            border-2 ${isExpanded ? 'border-[#C89A4B]' : 'border-transparent'}
           `}
         >
-          {/* Pulse Animation */}
+          {/* Premium Pulse Animation */}
           {!isExpanded && (
-            <span className="absolute inset-0 rounded-full bg-[#C89A4B] animate-ping opacity-30" />
+            <motion.span 
+              className="absolute inset-0 rounded-full bg-[#C89A4B]"
+              animate={{ 
+                scale: [1, 1.4, 1],
+                opacity: [0.4, 0, 0.4]
+              }}
+              transition={{ 
+                duration: 2, 
+                repeat: Infinity,
+                ease: 'easeInOut'
+              }}
+            />
           )}
           
-          <div className={`w-10 h-10 rounded-full flex items-center justify-center transition-colors ${isExpanded ? 'bg-[#C89A4B]/20' : 'bg-[#1a1008]/20'}`}>
+          <motion.div 
+            className={`w-12 h-12 rounded-full flex items-center justify-center relative z-10 transition-colors ${isExpanded ? 'bg-[#C89A4B]/20' : 'bg-[#1a1008]/20'}`}
+            animate={{ rotate: isExpanded ? 0 : 0 }}
+          >
             {isExpanded ? (
-              <X className="w-5 h-5" />
+              <X className="w-6 h-6" />
             ) : (
-              <MessageCircle className="w-5 h-5" />
+              <MessageCircle className="w-6 h-6" />
             )}
-          </div>
+          </motion.div>
           
-          <div className="text-left pr-2">
+          <div className="text-left pr-2 relative z-10">
             <span className="text-[10px] font-mono uppercase tracking-wider block opacity-80">
               {isExpanded ? 'Close' : 'Safari'}
             </span>
-            <span className="font-cinzel font-bold text-sm tracking-wide">
+            <span className="font-cinzel font-bold text-base tracking-wide">
               {isExpanded ? 'Menu' : 'Inquiry'}
             </span>
           </div>
-        </button>
+        </motion.button>
       </div>
-    </div>
+    </motion.div>
   );
 };
