@@ -6,6 +6,7 @@ import {
   Star, Shield, Award, Users, Clock, Sparkles, CheckCircle,
   ArrowRight, Play, MessageCircle, Globe, PawPrint, Sun
 } from 'lucide-react';
+import { TrustAndAuthority } from '../trust/TrustAndAuthority';
 
 // ==================== ANIMATED SECTION WRAPPER ====================
 interface AnimatedSectionProps {
@@ -656,6 +657,9 @@ export const ConversionHome: React.FC = () => {
       
       {/* 6. Final Conversion CTA */}
       <FinalConversionCTA />
+      
+      {/* 7. Trust & Authority - The Most Trusted Safari Authority */}
+      <TrustAndAuthority />
       
       {/* Import other luxury sections for scroll depth */}
       <ConservationImpactSection />
