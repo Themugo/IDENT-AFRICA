@@ -1,73 +1,16 @@
 {
   "version": 2,
-  "builds": [
-    {
-      "src": "server.ts",
-      "use": "@vercel/node"
-    },
-    {
-      "src": "dist/**",
-      "use": "@vercel/static"
+  "functions": {
+    "server.ts": {
+      "runtime": "@vercel/node@3.0.0",
+      "memory": 1024,
+      "maxDuration": 30
     }
-  ],
-  "routes": [
-    {
-      "src": "/api/(.*)",
-      "dest": "/server.ts"
-    },
-    {
-      "src": "/assets/(.*)",
-      "headers": {
-        "Cache-Control": "public, max-age=31536000, immutable"
-      }
-    },
-    {
-      "src": "/favicon.svg",
-      "headers": {
-        "Cache-Control": "public, max-age=86400"
-      }
-    },
-    {
-      "src": "/manifest.json",
-      "headers": {
-        "Cache-Control": "public, max-age=86400"
-      }
-    },
-    {
-      "src": "/sw.js",
-      "headers": {
-        "Cache-Control": "public, max-age=0, must-revalidate"
-      }
-    },
-    {
-      "src": "/(.*).js",
-      "headers": {
-        "Cache-Control": "public, max-age=31536000, immutable"
-      }
-    },
-    {
-      "src": "/(.*).css",
-      "headers": {
-        "Cache-Control": "public, max-age=31536000, immutable"
-      }
-    },
-    {
-      "src": "/(.*)",
-      "dest": "/dist/index.html"
-    }
-  ],
-  "env": {
-    "NODE_ENV": "production"
   },
-  "regions": ["fra1", "cdg1", "lhr1", "ams1"],
-  "crons": [
+  "rewrites": [
     {
-      "path": "/api/cron/cleanup",
-      "schedule": "0 * * * *"
-    },
-    {
-      "path": "/api/cron/metrics",
-      "schedule": "*/15 * * * *"
+      "source": "/api/:path*",
+      "destination": "/server"
     }
   ],
   "headers": [
@@ -105,10 +48,6 @@
         {
           "key": "Content-Security-Policy",
           "value": "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://va.vercel-analytics.com https://www.googletagmanager.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' data: https://fonts.gstatic.com; img-src 'self' data: https: blob:; connect-src 'self' https://api.vercel.com https://va.vercel-analytics.com https://www.google-analytics.com; frame-ancestors 'none'; base-uri 'self'; form-action 'self'"
-        },
-        {
-          "key": "X-Request-Id",
-          "value": "$request-id"
         }
       ]
     },
@@ -134,6 +73,33 @@
         {
           "key": "Pragma",
           "value": "no-cache"
+        }
+      ]
+    },
+    {
+      "source": "/assets/(.*)",
+      "headers": [
+        {
+          "key": "Cache-Control",
+          "value": "public, max-age=31536000, immutable"
+        }
+      ]
+    },
+    {
+      "source": "/favicon.svg",
+      "headers": [
+        {
+          "key": "Cache-Control",
+          "value": "public, max-age=86400"
+        }
+      ]
+    },
+    {
+      "source": "/sw.js",
+      "headers": [
+        {
+          "key": "Cache-Control",
+          "value": "public, max-age=0, must-revalidate"
         }
       ]
     },
