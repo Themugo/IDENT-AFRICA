@@ -47,6 +47,7 @@ import { BookingHistoryView } from './components/booking/BookingHistoryView';
 import { SearchPage } from './components/search/SearchPage';
 import { AuthModal } from './components/auth/AuthModal';
 import { BookingModal } from './components/booking/BookingModal';
+import { LuxuryBookingFlow } from './components/booking-flow';
 import { ProtectedRoute } from './components/auth/ProtectedRoute';
 
 const MainContent: React.FC = () => {
@@ -125,7 +126,8 @@ const MainContent: React.FC = () => {
 
       {/* Global Modals */}
       <AuthModal />
-      <BookingModal />
+      <LuxuryBookingFlow />
+      {/* <BookingModal /> */}
     </div>
   );
 };
