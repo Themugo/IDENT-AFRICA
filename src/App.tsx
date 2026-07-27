@@ -7,6 +7,7 @@ import React, { useEffect } from 'react';
 import { AppProvider, useApp } from './context/AppContext';
 import { ErrorBoundary } from './components/common/ErrorBoundary';
 import { reportWebVitals } from './utils/webVitals';
+import { initializeSentry, SentryErrorBoundary, setUserContext, clearUserContext } from './utils/sentry';
 import { Header } from './components/common/Header';
 import { Footer } from './components/common/Footer';
 // Navigation Components
@@ -49,6 +50,9 @@ import { AuthModal } from './components/auth/AuthModal';
 import { BookingModal } from './components/booking/BookingModal';
 import { LuxuryBookingFlow } from './components/booking-flow';
 import { ProtectedRoute } from './components/auth/ProtectedRoute';
+
+// Initialize Sentry error tracking
+initializeSentry();
 
 const MainContent: React.FC = () => {
   const { currentPage, navigateTo, user } = useApp();

@@ -211,7 +211,7 @@
 
 | Metric | Target | Check |
 |--------|--------|-------|
-| Error rate | <0.5% | Vercel Analytics |
+| Error rate | <0.5% | Vercel Analytics + Sentry |
 | Page load | <2s | Lighthouse CI |
 | Bookings | >0 | Dashboard |
 | Sign-ups | >0 | Dashboard |
@@ -224,6 +224,56 @@
 | Conversions | >2% | GA4 |
 | Performance | Stable | Lighthouse |
 | Uptime | 99.9% | UptimeRobot |
+
+---
+
+## ✅ Pre-Launch Actions Completed
+
+| Action | Status | Date | Notes |
+|--------|--------|------|-------|
+| Google Search Console verification | ✅ Added | 2026-07-27 | Meta tag added to index.html |
+| Bing Webmaster verification | ✅ Added | 2026-07-27 | Meta tag added to index.html |
+| Sentry error tracking | ✅ Integrated | 2026-07-27 | SDK installed and configured |
+| UptimeRobot monitoring | ✅ Config | 2026-07-27 | monitoring-config.json created |
+| Health check endpoint | ✅ Existing | 2026-07-27 | /api/health already configured |
+| Local Business SEO | ✅ Added | 2026-07-27 | LocalBusinessSEO component |
+| Keywords meta tag | ✅ Added | 2026-07-27 | Comprehensive keywords |
+
+---
+
+## 📝 Manual Actions Required
+
+### Before Going Live
+
+1. **Google Search Console**
+   - [ ] Get verification code from Google Search Console
+   - [ ] Replace `YOUR_GOOGLE_VERIFICATION_CODE` in index.html
+   - [ ] Submit sitemap: https://identafrica.com/sitemap.xml
+
+2. **Bing Webmaster**
+   - [ ] Get verification code from Bing Webmaster
+   - [ ] Replace `YOUR_BING_VERIFICATION_CODE` in index.html
+
+3. **UptimeRobot Setup**
+   - [ ] Create account at uptimerobot.com
+   - [ ] Add monitors using monitoring-config.json as reference
+   - [ ] Configure alert contacts
+
+4. **Sentry Configuration**
+   - [ ] Create project at sentry.io
+   - [ ] Get DSN from Sentry settings
+   - [ ] Add to Vercel environment: `VITE_SENTRY_DSN`
+
+5. **Google Business Profile**
+   - [ ] Go to business.google.com
+   - [ ] Create/claim your business listing
+   - [ ] Verify business address
+   - [ ] Add photos and details
+
+6. **Stripe Live Mode**
+   - [ ] Switch Stripe dashboard to live mode
+   - [ ] Update API keys in environment
+   - [ ] Test with small amount
 
 ---
 
