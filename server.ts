@@ -132,11 +132,43 @@ const corsOptions: cors.CorsOptions = {
 async function startServer() {
   const app = express();
 
-  // Security middleware
+  // Security middleware with appropriate settings for SPA
   app.use(helmet({
-    contentSecurityPolicy: false,
-    frameguard: false,
-    crossOriginEmbedderPolicy: false,
+    // Content Security Policy - relaxed for SPA with dynamic content
+    contentSecurityPolicy: {
+      directives: {
+        defaultSrc: ["'self'"],
+        scriptSrc: ["'self'", "'unsafe-inline'", "'unsafe-eval'"],
+        styleSrc: ["'self'", "'unsafe-inline'"],
+        imgSrc: ["'self'", 'data:', 'https:', 'blob:'],
+        connectSrc: ["'self'", 'https://api.open.er-api.com'],
+        fontSrc: ["'self'", 'data:'],
+        objectSrc: ["'none'"],
+        mediaSrc: ["'self'", 'https:'],
+        frameSrc: ["'none'"],
+      },
+    },
+    // X-Frame-Options - prevent clickjacking
+    frameguard: {
+      action: 'deny',
+    },
+    // Cross-Origin policies
+    crossOriginEmbedderPolicy: false, // Required for some third-party embeds
+    crossOriginResourcePolicy: { policy: 'cross-origin' },
+    // Hide X-Powered-By header
+    hidePoweredBy: true,
+    // HSTS - HTTPS only in production
+    hsts: NODE_ENV === 'production' ? {
+      maxAge: 31536000,
+      includeSubDomains: true,
+      preload: true,
+    } : false,
+    // Referrer Policy
+    referrerPolicy: { policy: 'strict-origin-when-cross-origin' },
+    // XSS Protection
+    xssFilter: true,
+    // Prevent MIME type sniffing
+    noSniff: true,
   }));
 
   // CORS

@@ -4,7 +4,6 @@
  */
 
 import rateLimit from 'express-rate-limit';
-import type { Request, Response } from 'express';
 
 // Response helper
 const rateLimitResponse = (retryAfter?: number) => ({
@@ -21,15 +20,9 @@ export const apiLimiter = rateLimit({
   standardHeaders: true, // Return rate limit info in `RateLimit-*` headers
   legacyHeaders: false, // Disable `X-RateLimit-*` headers
   message: rateLimitResponse(),
-  skip: (req: Request) => {
+  skip: (req) => {
     // Skip rate limiting for health checks
     return req.path === '/api/health' || req.path === '/api/health/';
-  },
-  keyGenerator: (req: Request) => {
-    // Use X-Forwarded-For header if behind proxy, otherwise use IP
-    return (req.headers['x-forwarded-for'] as string)?.split(',')[0]?.trim() 
-      || req.ip 
-      || 'unknown';
   },
 });
 

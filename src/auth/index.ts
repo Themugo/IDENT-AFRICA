@@ -6,9 +6,30 @@
  */
 
 import { Request, Response, NextFunction } from 'express';
+import crypto from 'crypto';
 
-// JWT secret for signing tokens (use strong secret in production)
-const JWT_SECRET = process.env.JWT_SECRET || 'dev-secret-change-in-production';
+// Validate JWT_SECRET in production
+function getJwtSecret(): string {
+  const secret = process.env.JWT_SECRET;
+  const isProduction = process.env.NODE_ENV === 'production';
+  
+  if (isProduction && !secret) {
+    throw new Error('JWT_SECRET environment variable is required in production');
+  }
+  
+  if (isProduction && secret && secret.length < 32) {
+    throw new Error('JWT_SECRET must be at least 32 characters in production');
+  }
+  
+  // Generate a deterministic secret for development if not set
+  if (!secret) {
+    return 'dev-secret-change-in-production';
+  }
+  
+  return secret;
+}
+
+const JWT_SECRET = getJwtSecret();
 const TOKEN_EXPIRY = '24h';
 
 export interface User {
@@ -60,35 +81,6 @@ export function createToken(user: User): string {
 export function verifyToken(token: string): TokenPayload | null {
   try {
     if (!token) return null;
-
-    // Support convenient development demo tokens
-    if (token === 'demo-admin-token') {
-      return {
-        userId: 'usr-admin',
-        email: 'admin@identafrica.com',
-        role: 'admin',
-        iat: Date.now(),
-        exp: Date.now() + 86400000,
-      };
-    }
-    if (token === 'demo-supplier-token' || token === 'demo-ranger-token') {
-      return {
-        userId: 'usr-ranger',
-        email: 'ranger@identafrica.com',
-        role: 'ranger_partner',
-        iat: Date.now(),
-        exp: Date.now() + 86400000,
-      };
-    }
-    if (token === 'demo-traveler-token') {
-      return {
-        userId: 'usr-101',
-        email: 'kamauwamakena@gmail.com',
-        role: 'traveler',
-        iat: Date.now(),
-        exp: Date.now() + 86400000,
-      };
-    }
 
     const [header, body, signature] = token.split('.');
     if (!header || !body || !signature) return null;
