@@ -12,15 +12,15 @@ import { Footer } from './components/common/Footer';
 import { BreadcrumbBar } from './components/navigation/BreadcrumbBar';
 import { StickyInquiryButton } from './components/navigation/StickyInquiryButton';
 import { QuickNavDrawer } from './components/navigation/QuickNavDrawer';
-// Luxury Brand Components
-import { LuxuryHero } from './components/home/LuxuryHero';
+// CRO-Optimized Homepage
+import { ConversionHome } from './components/home/ConversionHome';
+// Luxury Brand Components (for detailed exploration pages)
+import { LuxuryStoryBlocks } from './components/home/LuxuryStoryBlocks';
 import { EastAfricaMap } from './components/home/EastAfricaMap';
 import { MigrationRoutes } from './components/home/MigrationRoutes';
 import { ConservationImpact } from './components/home/ConservationImpact';
 import { AuthoritySection } from './components/home/AuthoritySection';
-import { LuxuryStoryBlocks } from './components/home/LuxuryStoryBlocks';
-// Original Components
-import { Hero } from './components/home/Hero';
+// Original Components (functionality)
 import { FeaturedDestinations } from './components/home/FeaturedDestinations';
 import { ExperiencePillars } from './components/home/ExperiencePillars';
 import { ItineraryShowcase } from './components/home/ItineraryShowcase';
@@ -58,22 +58,8 @@ const MainContent: React.FC = () => {
       <main className="flex-grow">
         {currentPage === 'home' && (
           <>
-            {/* Luxury Brand Transformation - National Geographic / Aman Resorts Quality */}
-            <LuxuryHero />
-            <LuxuryStoryBlocks />
-            <EastAfricaMap />
-            <MigrationRoutes />
-            <ConservationImpact />
-            <AuthoritySection />
-            
-            {/* Original Functionality Sections */}
-            <FeaturedDestinations />
-            <ExperiencePillars />
-            <ItineraryShowcase />
-            <InteractiveMap />
-            <SeasonalCalendar />
-            <TrustPillars />
-            <Testimonials />
+            {/* CRO-Optimized Homepage - Conversion Focused */}
+            <ConversionHome />
           </>
         )}
 
