@@ -240,7 +240,7 @@ export async function createApp() {
   app.use('/api/migration', optionalAuth, migrationRouter);
 
   // API Route: Live Exchange Rates
-  app.get('/api/exchange-rates', async (_req, res) => {
+  app.get('/api/exchange-rates', apiLimiter, async (_req, res) => {
     const DEFAULT_RATES = {
       USD: { rate: 1, symbol: '$', prefix: true },
       EUR: { rate: 0.92, symbol: '€', prefix: true },
@@ -298,8 +298,8 @@ export async function createApp() {
       const health = await getHealthStatus();
       res.status(health.status === 'healthy' ? 200 : 503).json(health);
     } catch (error) {
-      res.status(200).json({ 
-        status: 'ok', 
+      res.status(503).json({ 
+        status: 'error', 
         app: 'Ident Africa', 
         version: '1.0.0',
         environment: NODE_ENV,
@@ -323,8 +323,12 @@ export async function createApp() {
 
   // API Route: Readiness check (Kubernetes)
   app.get('/api/ready', async (_req, res) => {
-    const readiness = await getReadinessStatus();
-    res.status(readiness.ready ? 200 : 503).json(readiness);
+    try {
+      const readiness = await getReadinessStatus();
+      res.status(readiness.ready ? 200 : 503).json(readiness);
+    } catch (error) {
+      res.status(503).json({ ready: false, error: 'Readiness check failed', timestamp: new Date().toISOString() });
+    }
   });
 
   // API Route: Liveness check (Kubernetes)
@@ -447,7 +451,7 @@ export async function createApp() {
   });
 
   // API Route: Refund Workflow Process
-  app.post('/api/refunds/process', (req, res) => {
+  app.post('/api/refunds/process', authenticate, (req, res) => {
     try {
       const { bookingId, requestedAmountUSD, reason, payoutAccount } = req.body;
 
@@ -484,7 +488,7 @@ export async function createApp() {
   });
 
   // API Route: Gemini AI Safari Concierge
-  app.post('/api/ai-planner', async (req, res) => {
+  app.post('/api/ai-planner', aiPlannerLimiter, async (req, res) => {
     try {
       const apiKey = process.env.GEMINI_API_KEY;
       if (!apiKey) {
@@ -679,7 +683,7 @@ Ensure all prices sum up logically in costBreakdown, lodging aligns with duratio
         return res.status(400).json(createResponse(false, undefined, 'Invalid role', 'Role must be traveler or ranger_partner'));
       }
 
-      const { createToken, registerUser, isEmailTaken, hashPassword } = await import('./src/auth/index.ts');
+      const { createToken, registerUser, isEmailTaken, hashPassword } = await import('./src/auth/index.js');
 
       if (isEmailTaken(email)) {
         return res.status(409).json(createResponse(false, undefined, 'Email already registered', 'Please sign in instead, or use a different email'));
@@ -721,12 +725,12 @@ Ensure all prices sum up logically in costBreakdown, lodging aligns with duratio
       if (!email || !isValidEmail(email)) {
         return res.status(400).json(createResponse(false, undefined, 'Invalid email', 'Please provide a valid email address'));
       }
-      if (!password || password.length < 6) {
-        return res.status(400).json(createResponse(false, undefined, 'Invalid password', 'Password must be at least 6 characters'));
+      if (!password || password.length < 8) {
+        return res.status(400).json(createResponse(false, undefined, 'Invalid password', 'Password must be at least 8 characters'));
       }
 
       // Import auth functions dynamically to avoid circular deps
-      const { findUserByCredentials, createToken } = await import('./src/auth/index.ts');
+      const { findUserByCredentials, createToken } = await import('./src/auth/index.js');
       
       const user = await findUserByCredentials(email, password);
       if (!user) {
@@ -760,7 +764,7 @@ Ensure all prices sum up logically in costBreakdown, lodging aligns with duratio
       return res.status(401).json(createResponse(false, undefined, 'Not authenticated', 'Please log in'));
     }
 
-    const { verifyToken, DEMO_USERS, findRegisteredUserById } = await import('./src/auth/index.ts');
+    const { verifyToken, DEMO_USERS, findRegisteredUserById } = await import('./src/auth/index.js');
     const payload = verifyToken(token);
     
     if (!payload) {
@@ -794,7 +798,7 @@ Ensure all prices sum up logically in costBreakdown, lodging aligns with duratio
 
   // GET /api/admin/stats - Admin dashboard statistics
   // Note: Uses routes/admin.ts when database is connected
-  app.get('/api/admin/stats', async (req: Request, res: Response) => {
+  app.get('/api/admin/stats', authenticate, authorize('admin'), async (req: Request, res: Response) => {
     // Mock admin statistics
     const stats = {
       totalRevenueUSD: 2485000,
@@ -827,7 +831,7 @@ Ensure all prices sum up logically in costBreakdown, lodging aligns with duratio
   // GET /api/db/health - Database health check
   app.get('/api/db/health', async (_req: Request, res: Response) => {
     try {
-      const db = await import('./src/database/index.ts');
+      const db = await import('./src/db/index.js');
       const health = await db.healthCheck();
       
       res.status(200).json(createResponse(true, {
@@ -840,6 +844,11 @@ Ensure all prices sum up logically in costBreakdown, lodging aligns with duratio
         timestamp: new Date().toISOString(),
       }));
     }
+  });
+
+  // 404 handler for unknown API routes (must be before SPA catch-all)
+  app.use('/api/*', (_req: Request, res: Response) => {
+    res.status(404).json(createResponse(false, undefined, 'Route not found', 'The requested API endpoint does not exist'));
   });
 
   // Static file serving: skip on Vercel (handled by vercel.json routes)
@@ -857,11 +866,6 @@ Ensure all prices sum up logically in costBreakdown, lodging aligns with duratio
       res.sendFile(path.join(distPath, 'index.html'));
     });
   }
-
-  // 404 handler for unknown API routes
-  app.use('/api/*', (_req: Request, res: Response) => {
-    res.status(404).json(createResponse(false, undefined, 'Route not found', 'The requested API endpoint does not exist'));
-  });
 
   // Global error handler - must be after all routes
   app.use((err: Error, _req: Request, res: Response, _next: NextFunction) => {

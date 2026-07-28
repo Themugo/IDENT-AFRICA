@@ -4,6 +4,7 @@
  */
 
 import { Router, Request, Response } from 'express';
+import { randomUUID } from 'crypto';
 import { query, transaction, isDatabaseConnected } from '../db/index.js';
 
 const router = Router();
@@ -36,7 +37,7 @@ router.post('/create', async (req: Request, res: Response) => {
     if (!isDatabaseConnected()) {
       // Mock payment creation
       const mockPayment = {
-        id: require('crypto').randomUUID(),
+        id: randomUUID(),
         transaction_ref: generateTransactionRef(gateway),
         booking_id,
         amount,

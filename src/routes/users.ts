@@ -4,6 +4,7 @@
  */
 
 import { Router, Request, Response } from 'express';
+import { randomBytes } from 'crypto';
 import { query, isDatabaseConnected } from '../db/index.js';
 import type { UserRow } from '../db/types.js';
 import bcrypt from 'bcrypt';
@@ -211,7 +212,7 @@ router.post('/forgot-password', async (req: Request, res: Response) => {
     const userId = userResult.rows[0].id;
 
     // Generate reset token (in production, save to password_resets table and send email)
-    const resetToken = require('crypto').randomBytes(32).toString('hex');
+    const resetToken = randomBytes(32).toString('hex');
     const expiresAt = new Date(Date.now() + 3600000); // 1 hour
 
     await query(
