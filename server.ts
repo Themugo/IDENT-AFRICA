@@ -678,7 +678,13 @@ Ensure all prices sum up logically in costBreakdown, lodging aligns with duratio
       if (!['traveler', 'ranger_partner'].includes(role)) {
         return res.status(400).json(createResponse(false, undefined, 'Invalid role', 'Role must be traveler or ranger_partner'));
       }
-      
+
+      const { createToken, registerUser, isEmailTaken, hashPassword } = await import('./src/auth/index.ts');
+
+      if (isEmailTaken(email)) {
+        return res.status(409).json(createResponse(false, undefined, 'Email already registered', 'Please sign in instead, or use a different email'));
+      }
+
       const userId = `usr-${Date.now()}`;
       const newUser = {
         id: userId,
@@ -688,8 +694,10 @@ Ensure all prices sum up logically in costBreakdown, lodging aligns with duratio
         phone: phone ? sanitizeString(phone) : undefined,
         createdAt: new Date().toISOString(),
       };
-      
-      const { createToken } = await import('./src/auth/index.ts');
+
+      const passwordHash = await hashPassword(password);
+      registerUser(newUser, passwordHash);
+
       const token = createToken(newUser);
       
       res.status(201).json(createResponse(true, {
@@ -720,7 +728,7 @@ Ensure all prices sum up logically in costBreakdown, lodging aligns with duratio
       // Import auth functions dynamically to avoid circular deps
       const { findUserByCredentials, createToken } = await import('./src/auth/index.ts');
       
-      const user = findUserByCredentials(email, password);
+      const user = await findUserByCredentials(email, password);
       if (!user) {
         return res.status(401).json(createResponse(false, undefined, 'Authentication failed', 'Invalid email or password'));
       }
@@ -752,14 +760,14 @@ Ensure all prices sum up logically in costBreakdown, lodging aligns with duratio
       return res.status(401).json(createResponse(false, undefined, 'Not authenticated', 'Please log in'));
     }
 
-    const { verifyToken, DEMO_USERS } = await import('./src/auth/index.ts');
+    const { verifyToken, DEMO_USERS, findRegisteredUserById } = await import('./src/auth/index.ts');
     const payload = verifyToken(token);
     
     if (!payload) {
       return res.status(401).json(createResponse(false, undefined, 'Invalid token', 'Your session has expired'));
     }
 
-    const user = DEMO_USERS.find(u => u.id === payload.userId);
+    const user = DEMO_USERS.find(u => u.id === payload.userId) || findRegisteredUserById(payload.userId);
     if (!user) {
       return res.status(404).json(createResponse(false, undefined, 'User not found', 'User account not found'));
     }

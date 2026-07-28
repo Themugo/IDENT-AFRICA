@@ -19,7 +19,7 @@ import { MobileBottomNav } from './components/navigation/MobileBottomNav';
 import { ConversionHome } from './components/home/ConversionHome';
 // Luxury Brand Components (for detailed exploration pages)
 // Original Components (functionality)
-import { ItineraryShowcase } from './components/home/ItineraryShowcase';
+import { ItineraryShowcase, ItineraryDetail } from './components/home/ItineraryShowcase';
 import { DestinationListing } from './components/destinations/DestinationListing';
 import { DestinationDetail } from './components/destinations/DestinationDetail';
 import { HotelListing } from './components/hotels/HotelListing';
@@ -32,6 +32,7 @@ import { VisualItineraryBuilder } from './components/builder/VisualItineraryBuil
 import { UserDashboard } from './components/dashboard/UserDashboard';
 import { AdminDashboard } from './components/dashboard/AdminDashboard';
 import { SupplierPortal } from './components/supplier/SupplierPortal';
+import { SupplierRegistration } from './components/supplier/SupplierRegistration';
 import { BookingHistoryView } from './components/booking/BookingHistoryView';
 import { SearchPage } from './components/search/SearchPage';
 import { AuthModal } from './components/auth/AuthModal';
@@ -81,9 +82,11 @@ const MainContent: React.FC = () => {
         {currentPage === 'hotel-detail' && <HotelDetail />}
         {currentPage === 'compare-hotels' && <HotelComparator />}
         {currentPage === 'itineraries' && <ItineraryShowcase />}
+        {currentPage === 'itinerary-detail' && <ItineraryDetail />}
         {currentPage === 'itinerary-builder' && <VisualItineraryBuilder />}
         {currentPage === 'compare' && <TripComparator />}
         {currentPage === 'ai-planner' && <LuxurySafariConcierge />}
+        {currentPage === 'supplier-register' && <SupplierRegistration />}
         {currentPage === 'user-dashboard' && (
           <ProtectedRoute title="Traveler Portal & Concierge" description="Sign in to view your luxury itinerary reservations, concierge messages, and rewards status.">
             <UserDashboard />

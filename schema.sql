@@ -4522,30 +4522,10 @@ CREATE INDEX idx_api_keys_prefix ON api_keys(key_prefix);
 CREATE INDEX idx_api_keys_active ON api_keys(is_active) WHERE is_active = TRUE;
 
 -- Audit log
-CREATE TYPE audit_action AS ENUM ('create', 'read', 'update', 'delete', 'login', 'logout', 'password_change', 'permission_change', 'api_key_created', 'api_key_revoked', 'payment_processed', 'payment_refunded', 'data_export', 'access_denied');
-
-CREATE TABLE IF NOT EXISTS audit_logs (
-    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-    user_id VARCHAR(64),
-    user_role user_role,
-    session_id VARCHAR(128),
-    ip_address INET,
-    action audit_action NOT NULL,
-    resource_type VARCHAR(64) NOT NULL,
-    resource_id VARCHAR(128),
-    details JSONB DEFAULT '{}',
-    success BOOLEAN DEFAULT TRUE,
-    error_message TEXT,
-    user_agent TEXT,
-    request_method VARCHAR(10),
-    request_path VARCHAR(512),
-    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
-);
-
-CREATE INDEX idx_audit_user ON audit_logs(user_id);
-CREATE INDEX idx_audit_action ON audit_logs(action);
-CREATE INDEX idx_audit_resource ON audit_logs(resource_type, resource_id);
-CREATE INDEX idx_audit_created ON audit_logs(created_at DESC);
+-- (see the audit_logs table defined earlier in this file - this was a
+-- duplicate definition removed during a stability audit; its indexes
+-- were unguarded and collided with the first definition's index names,
+-- which would abort a fresh migration partway through)
 
 -- Row-level security policies
 CREATE TABLE IF NOT EXISTS row_security_policies (

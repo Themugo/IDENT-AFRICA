@@ -228,15 +228,60 @@ export const DEMO_USERS: User[] = [
   },
 ];
 
-// Find user by credentials (demo implementation)
-export function findUserByCredentials(
+// In-memory store for users created via /api/auth/register.
+//
+// IMPORTANT: this does NOT persist across server restarts - there is
+// no database configured in this environment. Without this, a real
+// registration issued a valid token for a user that was never stored
+// anywhere: calling /api/auth/me with that exact token always
+// returned 404, so nobody could actually use an account they just
+// created. This closes that gap for the lifetime of a single server
+// process. Replace with real database-backed storage once one is
+// provisioned (see src/db/index.ts).
+const registeredUsers = new Map<string, User & { passwordHash: string }>();
+
+export function registerUser(user: User, passwordHash: string): void {
+  registeredUsers.set(user.email.toLowerCase(), { ...user, passwordHash });
+}
+
+export function findRegisteredUserById(userId: string): User | null {
+  for (const record of registeredUsers.values()) {
+    if (record.id === userId) {
+      const { passwordHash: _passwordHash, ...user } = record;
+      return user;
+    }
+  }
+  return null;
+}
+
+export function isEmailTaken(email: string): boolean {
+  const normalized = email.toLowerCase();
+  return (
+    DEMO_USERS.some((u) => u.email.toLowerCase() === normalized) ||
+    registeredUsers.has(normalized)
+  );
+}
+
+// Find user by credentials
+export async function findUserByCredentials(
   email: string,
   password: string
-): User | null {
-  // Demo: accept any password for demo users
-  if (password === 'demo123') {
-    return DEMO_USERS.find(u => u.email === email) || null;
+): Promise<User | null> {
+  const normalized = email.toLowerCase();
+
+  const registered = registeredUsers.get(normalized);
+  if (registered) {
+    const valid = await verifyPassword(password, registered.passwordHash);
+    if (!valid) return null;
+    const { passwordHash: _passwordHash, ...user } = registered;
+    return user;
   }
+
+  // Demo: accept the fixed demo password for the seeded demo users
+  if (password === 'demo123') {
+    return DEMO_USERS.find((u) => u.email.toLowerCase() === normalized) || null;
+  }
+
   return null;
 }
 
@@ -307,6 +352,9 @@ export default {
   ROLE_PERMISSIONS,
   DEMO_USERS,
   findUserByCredentials,
+  registerUser,
+  findRegisteredUserById,
+  isEmailTaken,
   hashPassword,
   verifyPassword,
 };
