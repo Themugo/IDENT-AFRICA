@@ -3,26 +3,31 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import React from 'react';
+import React, { useEffect } from 'react';
 import { AppProvider, useApp } from './context/AppContext';
 import { ErrorBoundary } from './components/common/ErrorBoundary';
+import { reportWebVitals } from './utils/webVitals';
+import { initializeSentry } from './utils/sentry';
 import { Header } from './components/common/Header';
 import { Footer } from './components/common/Footer';
-import { Hero } from './components/home/Hero';
-import { FeaturedDestinations } from './components/home/FeaturedDestinations';
-import { ExperiencePillars } from './components/home/ExperiencePillars';
+// Navigation Components
+import { BreadcrumbBar } from './components/navigation/BreadcrumbBar';
+import { StickyInquiryButton } from './components/navigation/StickyInquiryButton';
+import { QuickNavDrawer } from './components/navigation/QuickNavDrawer';
+import { MobileBottomNav } from './components/navigation/MobileBottomNav';
+// CRO-Optimized Homepage
+import { ConversionHome } from './components/home/ConversionHome';
+// Luxury Brand Components (for detailed exploration pages)
+// Original Components (functionality)
 import { ItineraryShowcase } from './components/home/ItineraryShowcase';
-import { InteractiveMap } from './components/home/InteractiveMap';
-import { SeasonalCalendar } from './components/home/SeasonalCalendar';
-import { TrustPillars } from './components/home/TrustPillars';
-import { Testimonials } from './components/home/Testimonials';
 import { DestinationListing } from './components/destinations/DestinationListing';
 import { DestinationDetail } from './components/destinations/DestinationDetail';
 import { HotelListing } from './components/hotels/HotelListing';
 import { HotelDetail } from './components/hotels/HotelDetail';
 import { HotelComparator } from './components/hotels/HotelComparator';
 import { TripComparator } from './components/compare/TripComparator';
-import { AISafariPlanner } from './components/ai-planner/AISafariPlanner';
+// AI Concierge Components
+import { LuxurySafariConcierge } from './components/ai-planner/LuxurySafariConcierge';
 import { VisualItineraryBuilder } from './components/builder/VisualItineraryBuilder';
 import { UserDashboard } from './components/dashboard/UserDashboard';
 import { AdminDashboard } from './components/dashboard/AdminDashboard';
@@ -30,8 +35,11 @@ import { SupplierPortal } from './components/supplier/SupplierPortal';
 import { BookingHistoryView } from './components/booking/BookingHistoryView';
 import { SearchPage } from './components/search/SearchPage';
 import { AuthModal } from './components/auth/AuthModal';
-import { BookingModal } from './components/booking/BookingModal';
+import { LuxuryBookingFlow } from './components/booking-flow';
 import { ProtectedRoute } from './components/auth/ProtectedRoute';
+
+// Initialize Sentry error tracking
+initializeSentry();
 
 const MainContent: React.FC = () => {
   const { currentPage, navigateTo, user } = useApp();
@@ -39,18 +47,15 @@ const MainContent: React.FC = () => {
   return (
     <div className="flex flex-col min-h-screen">
       <Header />
+      
+      {/* Enterprise Navigation: Breadcrumbs on all pages except home */}
+      <BreadcrumbBar />
 
       <main className="flex-grow">
         {currentPage === 'home' && (
           <>
-            <Hero />
-            <FeaturedDestinations />
-            <ExperiencePillars />
-            <ItineraryShowcase />
-            <InteractiveMap />
-            <SeasonalCalendar />
-            <TrustPillars />
-            <Testimonials />
+            {/* CRO-Optimized Homepage - Conversion Focused */}
+            <ConversionHome />
           </>
         )}
 
@@ -78,7 +83,7 @@ const MainContent: React.FC = () => {
         {currentPage === 'itineraries' && <ItineraryShowcase />}
         {currentPage === 'itinerary-builder' && <VisualItineraryBuilder />}
         {currentPage === 'compare' && <TripComparator />}
-        {currentPage === 'ai-planner' && <AISafariPlanner />}
+        {currentPage === 'ai-planner' && <LuxurySafariConcierge />}
         {currentPage === 'user-dashboard' && (
           <ProtectedRoute title="Traveler Portal & Concierge" description="Sign in to view your luxury itinerary reservations, concierge messages, and rewards status.">
             <UserDashboard />
@@ -103,14 +108,26 @@ const MainContent: React.FC = () => {
 
       <Footer />
 
+      {/* Mobile-First Bottom Navigation with WhatsApp Concierge */}
+      <MobileBottomNav />
+
+      {/* Enterprise Navigation Elements */}
+      <StickyInquiryButton />
+      <QuickNavDrawer />
+
       {/* Global Modals */}
       <AuthModal />
-      <BookingModal />
+      <LuxuryBookingFlow />
+      {/* <BookingModal /> */}
     </div>
   );
 };
 
 export default function App() {
+  useEffect(() => {
+    reportWebVitals();
+  }, []);
+
   return (
     <ErrorBoundary>
       <AppProvider>

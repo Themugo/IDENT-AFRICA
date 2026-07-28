@@ -1,6 +1,5 @@
 import express, { Request, Response, NextFunction } from 'express';
 import path from 'path';
-import { fileURLToPath } from 'url';
 import { GoogleGenAI } from '@google/genai';
 import dotenv from 'dotenv';
 
@@ -37,6 +36,16 @@ import migrationRouter from './src/routes/migration.js';
 // Auth Middleware
 import { authenticate, optionalAuth, authorize } from './src/auth/index.js';
 
+// Rate Limiting Middleware
+import { 
+  apiLimiter, 
+  authLimiter, 
+  searchLimiter, 
+  aiPlannerLimiter,
+  bookingLimiter,
+  paymentLimiter 
+} from './src/middleware/rateLimit.js';
+
 // Monitoring services
 import { logger } from './src/services/monitoring/logger.js';
 import { performanceMonitor, performanceTracker } from './src/services/monitoring/performance.js';
@@ -49,9 +58,6 @@ import {
 } from './src/services/monitoring/health.js';
 
 dotenv.config();
-
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
 
 // Environment configuration with validation
 const PORT = parseInt(process.env.PORT || '3000', 10);
@@ -122,11 +128,43 @@ const corsOptions: cors.CorsOptions = {
 async function startServer() {
   const app = express();
 
-  // Security middleware
+  // Security middleware with appropriate settings for SPA
   app.use(helmet({
-    contentSecurityPolicy: false,
-    frameguard: false,
-    crossOriginEmbedderPolicy: false,
+    // Content Security Policy - relaxed for SPA with dynamic content
+    contentSecurityPolicy: {
+      directives: {
+        defaultSrc: ["'self'"],
+        scriptSrc: ["'self'", "'unsafe-inline'", "'unsafe-eval'"],
+        styleSrc: ["'self'", "'unsafe-inline'"],
+        imgSrc: ["'self'", 'data:', 'https:', 'blob:'],
+        connectSrc: ["'self'", 'https://api.open.er-api.com'],
+        fontSrc: ["'self'", 'data:'],
+        objectSrc: ["'none'"],
+        mediaSrc: ["'self'", 'https:'],
+        frameSrc: ["'none'"],
+      },
+    },
+    // X-Frame-Options - prevent clickjacking
+    frameguard: {
+      action: 'deny',
+    },
+    // Cross-Origin policies
+    crossOriginEmbedderPolicy: false, // Required for some third-party embeds
+    crossOriginResourcePolicy: { policy: 'cross-origin' },
+    // Hide X-Powered-By header
+    hidePoweredBy: true,
+    // HSTS - HTTPS only in production
+    hsts: NODE_ENV === 'production' ? {
+      maxAge: 31536000,
+      includeSubDomains: true,
+      preload: true,
+    } : false,
+    // Referrer Policy
+    referrerPolicy: { policy: 'strict-origin-when-cross-origin' },
+    // XSS Protection
+    xssFilter: true,
+    // Prevent MIME type sniffing
+    noSniff: true,
   }));
 
   // CORS
@@ -174,19 +212,22 @@ async function startServer() {
   // Initialize database connection
   await initDatabase();
 
-  // Register REST API routes
+  // Apply general API rate limiting
+  app.use('/api/', apiLimiter);
+
+  // Register REST API routes with specific rate limiters
+  app.use('/api/search', searchLimiter, optionalAuth, searchRouter);
+  app.use('/api/bookings', bookingLimiter, optionalAuth, bookingsRouter);
+  app.use('/api/payments', paymentLimiter, optionalAuth, paymentsRouter);
   app.use('/api/destinations', optionalAuth, destinationsRouter);
   app.use('/api/lodges', optionalAuth, lodgesRouter);
-  app.use('/api/bookings', optionalAuth, bookingsRouter);
   app.use('/api/users', optionalAuth, usersRouter);
-  app.use('/api/payments', optionalAuth, paymentsRouter);
   app.use('/api/suppliers', optionalAuth, suppliersRouter);
   app.use('/api/admin', optionalAuth, adminRouter);
   app.use('/api/cms', optionalAuth, cmsRouter);
   app.use('/api/page-builder', optionalAuth, pageBuilderRouter);
   app.use('/api/media', optionalAuth, mediaRouter);
   app.use('/api/pricing', optionalAuth, pricingRouter);
-  app.use('/api/search', optionalAuth, searchRouter);
   app.use('/api/inventory', optionalAuth, inventoryRouter);
   app.use('/api/notifications', optionalAuth, notificationsRouter);
   app.use('/api/communication', optionalAuth, communicationRouter);
@@ -618,7 +659,7 @@ Ensure all prices sum up logically in costBreakdown, lodging aligns with duratio
   // =============================================================================
   
   // POST /api/auth/register - User registration
-  app.post('/api/auth/register', async (req: Request, res: Response) => {
+  app.post('/api/auth/register', authLimiter, async (req: Request, res: Response) => {
     try {
       const { name, email, password, phone, role = 'traveler' } = req.body;
       
@@ -664,7 +705,7 @@ Ensure all prices sum up logically in costBreakdown, lodging aligns with duratio
   });
 
   // POST /api/auth/login - User login
-  app.post('/api/auth/login', async (req: Request, res: Response) => {
+  app.post('/api/auth/login', authLimiter, async (req: Request, res: Response) => {
     try {
       const { email, password } = req.body;
 
@@ -827,7 +868,7 @@ Ensure all prices sum up logically in costBreakdown, lodging aligns with duratio
     ));
   });
 
-  app.listen(PORT, '0.0.0.0', () => {
+  const httpServer = app.listen(PORT, '0.0.0.0', () => {
     console.log(`═══════════════════════════════════════════════════════════`);
     console.log(`  Ident Africa Server`);
     console.log(`═══════════════════════════════════════════════════════════`);
@@ -836,6 +877,35 @@ Ensure all prices sum up logically in costBreakdown, lodging aligns with duratio
     console.log(`  Health:     http://localhost:${PORT}/api/health`);
     console.log(`═══════════════════════════════════════════════════════════`);
   });
+
+  // Graceful shutdown: hosting platforms (Render included) send SIGTERM on
+  // every deploy/restart/scale-down. Without handling it, in-flight
+  // requests get killed abruptly instead of finishing first.
+  let shuttingDown = false;
+  const shutdown = (signal: string) => {
+    if (shuttingDown) return;
+    shuttingDown = true;
+    console.log(`\n${signal} received: closing server gracefully...`);
+
+    const forceExitTimer = setTimeout(() => {
+      console.error('Graceful shutdown timed out, forcing exit');
+      process.exit(1);
+    }, 10000);
+    forceExitTimer.unref();
+
+    httpServer.close((err) => {
+      if (err) {
+        console.error('Error during server close:', err);
+        process.exit(1);
+      }
+      console.log('Server closed, exiting.');
+      clearTimeout(forceExitTimer);
+      process.exit(0);
+    });
+  };
+
+  process.on('SIGTERM', () => shutdown('SIGTERM'));
+  process.on('SIGINT', () => shutdown('SIGINT'));
 }
 
 startServer().catch((err) => {

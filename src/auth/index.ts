@@ -6,9 +6,31 @@
  */
 
 import { Request, Response, NextFunction } from 'express';
+import crypto from 'crypto';
+import bcrypt from 'bcrypt';
 
-// JWT secret for signing tokens (use strong secret in production)
-const JWT_SECRET = process.env.JWT_SECRET || 'dev-secret-change-in-production';
+// Validate JWT_SECRET in production
+function getJwtSecret(): string {
+  const secret = process.env.JWT_SECRET;
+  const isProduction = process.env.NODE_ENV === 'production';
+  
+  if (isProduction && !secret) {
+    throw new Error('JWT_SECRET environment variable is required in production');
+  }
+  
+  if (isProduction && secret && secret.length < 32) {
+    throw new Error('JWT_SECRET must be at least 32 characters in production');
+  }
+  
+  // Generate a deterministic secret for development if not set
+  if (!secret) {
+    return 'dev-secret-change-in-production';
+  }
+  
+  return secret;
+}
+
+const JWT_SECRET = getJwtSecret();
 const TOKEN_EXPIRY = '24h';
 
 export interface User {
@@ -37,7 +59,22 @@ function base64Decode<T>(str: string): T {
   return JSON.parse(Buffer.from(str, 'base64url').toString());
 }
 
-// Create a simple token (for demo - use jsonwebtoken in production)
+// Real HMAC-SHA256 signature over header+body. Unlike the previous
+// scheme, the secret is only ever used as an HMAC key here - it is
+// never embedded in the token itself.
+function sign(headerAndBody: string): string {
+  return crypto.createHmac('sha256', JWT_SECRET).update(headerAndBody).digest('base64url');
+}
+
+function verifySignature(headerAndBody: string, signature: string): boolean {
+  const expected = sign(headerAndBody);
+  const expectedBuf = Buffer.from(expected);
+  const actualBuf = Buffer.from(signature);
+  if (expectedBuf.length !== actualBuf.length) return false;
+  return crypto.timingSafeEqual(expectedBuf, actualBuf);
+}
+
+// Create a signed token (for demo - use jsonwebtoken in production)
 export function createToken(user: User): string {
   const payload: Omit<TokenPayload, 'iat' | 'exp'> = {
     userId: user.id,
@@ -51,7 +88,7 @@ export function createToken(user: User): string {
     iat: Date.now(),
     exp: Date.now() + 24 * 60 * 60 * 1000, // 24 hours
   });
-  const signature = base64Encode({ secret: JWT_SECRET, ...payload });
+  const signature = sign(`${header}.${body}`);
   
   return `${header}.${body}.${signature}`;
 }
@@ -61,43 +98,12 @@ export function verifyToken(token: string): TokenPayload | null {
   try {
     if (!token) return null;
 
-    // Support convenient development demo tokens
-    if (token === 'demo-admin-token') {
-      return {
-        userId: 'usr-admin',
-        email: 'admin@identafrica.com',
-        role: 'admin',
-        iat: Date.now(),
-        exp: Date.now() + 86400000,
-      };
-    }
-    if (token === 'demo-supplier-token' || token === 'demo-ranger-token') {
-      return {
-        userId: 'usr-ranger',
-        email: 'ranger@identafrica.com',
-        role: 'ranger_partner',
-        iat: Date.now(),
-        exp: Date.now() + 86400000,
-      };
-    }
-    if (token === 'demo-traveler-token') {
-      return {
-        userId: 'usr-101',
-        email: 'kamauwamakena@gmail.com',
-        role: 'traveler',
-        iat: Date.now(),
-        exp: Date.now() + 86400000,
-      };
-    }
-
     const [header, body, signature] = token.split('.');
     if (!header || !body || !signature) return null;
-    
+
+    if (!verifySignature(`${header}.${body}`, signature)) return null;
+
     const payload = base64Decode<TokenPayload>(body);
-    const sigData = base64Decode<{ secret: string; userId: string }>(signature);
-    
-    // Verify signature
-    if (sigData.secret !== JWT_SECRET) return null;
     
     // Check expiration
     if (payload.exp < Date.now()) return null;
@@ -234,14 +240,14 @@ export function findUserByCredentials(
   return null;
 }
 
-// Generate password hash (simple - use bcrypt in production)
-export function hashPassword(password: string): string {
-  return Buffer.from(password).toString('base64');
+// Generate password hash
+export async function hashPassword(password: string): Promise<string> {
+  return bcrypt.hash(password, 12);
 }
 
 // Verify password hash
-export function verifyPassword(password: string, hash: string): boolean {
-  return hashPassword(password) === hash;
+export async function verifyPassword(password: string, hash: string): Promise<boolean> {
+  return bcrypt.compare(password, hash);
 }
 
 // Role-based Access Control Matrix
