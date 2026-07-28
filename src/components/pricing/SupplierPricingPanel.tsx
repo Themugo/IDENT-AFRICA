@@ -361,7 +361,7 @@ function SupplierRuleForm({ supplierId, onSubmit, onCancel }: {
     entityId: '',
     entityType: 'package' as const,
     ruleType: 'season' as const,
-    action: 'percentage' as const,
+    action: 'percentage' as 'add' | 'subtract' | 'multiply' | 'percentage',
     percentageChange: 0,
     fixedAmount: 0,
     startDate: '',

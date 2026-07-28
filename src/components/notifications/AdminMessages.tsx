@@ -39,6 +39,7 @@ interface Message {
 
 interface Conversation {
   id: string;
+  sender_id: string;
   sender_name: string;
   sender_type: string;
   last_message: string;

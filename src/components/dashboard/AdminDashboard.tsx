@@ -134,7 +134,7 @@ export const AdminDashboard: React.FC = () => {
       name: '',
       tagline: '',
       category: 'Safari Lodge',
-      tier: 'Ultra Luxury',
+      tier: 'Ultra-Luxe Canvas',
       country: 'Kenya',
       region: 'Masai Mara National Reserve',
       location: 'Oloololo Escarpment, Mara Triangle',
@@ -716,9 +716,9 @@ export const AdminDashboard: React.FC = () => {
                         <span className="font-bold text-[#D4AF37] block">{bk.bookingRef}</span>
                         <span className="text-[10px] text-[#F5EBE0]/70">{bk.travelerName} ({bk.travelerEmail})</span>
                       </td>
-                      <td className="p-4 font-serif font-bold text-[#F5EBE0]">{bk.itineraryTitle}</td>
+                      <td className="p-4 font-serif font-bold text-[#F5EBE0]">{bk.title}</td>
                       <td className="p-4 text-[#F5EBE0]/80">{bk.startDate} to {bk.endDate}</td>
-                      <td className="p-4 font-serif font-bold text-[#D4AF37]">{formatPrice(bk.totalAmountUSD)}</td>
+                      <td className="p-4 font-serif font-bold text-[#D4AF37]">{formatPrice(bk.totalPriceUSD)}</td>
                       <td className="p-4">
                         <span className={`px-2.5 py-1 rounded-full text-[10px] font-bold ${
                           bk.status === 'Confirmed'
@@ -801,7 +801,7 @@ export const AdminDashboard: React.FC = () => {
                   <label className="block text-[#D4AF37] uppercase mb-1">Country</label>
                   <select
                     value={hotelFormData.country || 'Kenya'}
-                    onChange={e => setHotelFormData({ ...hotelFormData, country: e.target.value as Country })}
+                    onChange={e => setHotelFormData({ ...hotelFormData, country: e.target.value as Country as Country })}
                     className="w-full px-3 py-2.5 rounded-xl bg-[#12241A] border border-[#2A362E] focus:outline-none focus:border-[#D4AF37] text-white"
                   >
                     <option value="Kenya">Kenya</option>
@@ -998,7 +998,7 @@ export const AdminDashboard: React.FC = () => {
                   <label className="block text-[#D4AF37] uppercase mb-1">Country</label>
                   <select
                     value={destFormData.country || 'Kenya'}
-                    onChange={e => setDestFormData({ ...destFormData, country: e.target.value })}
+                    onChange={e => setDestFormData({ ...destFormData, country: e.target.value as Country })}
                     className="w-full px-3 py-2 rounded-xl bg-[#12241A] border border-[#2A362E] focus:outline-none focus:border-[#D4AF37] text-white"
                   >
                     <option value="Kenya">Kenya</option>

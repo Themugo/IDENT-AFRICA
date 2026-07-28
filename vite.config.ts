@@ -15,5 +15,29 @@ export default defineConfig(() => {
       hmr: process.env.DISABLE_HMR !== 'true',
       watch: process.env.DISABLE_HMR === 'true' ? null : {},
     },
+    build: {
+      // Optimize chunk size
+      chunkSizeWarningLimit: 600,
+      rollupOptions: {
+        output: {
+          manualChunks: {
+            // Split vendor chunks
+            'react-vendor': ['react', 'react-dom'],
+            'motion-vendor': ['motion'],
+            'lucide-vendor': ['lucide-react'],
+          },
+        },
+      },
+      // Minify - explicit type assertion for TypeScript
+      minify: 'esbuild' as const,
+      // CSS code splitting
+      cssCodeSplit: true,
+      // Source maps for debugging
+      sourcemap: false,
+    },
+    // Performance optimizations
+    optimizeDeps: {
+      include: ['react', 'react-dom', 'motion', 'lucide-react'],
+    },
   };
 });

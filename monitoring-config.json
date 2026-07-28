@@ -1,0 +1,152 @@
+{
+  "monitoring": {
+    "service": "IDENT AFRICA",
+    "version": "1.0.0",
+    "endpoints": [
+      {
+        "name": "Frontend (Main Site)",
+        "url": "https://identafrica.com",
+        "type": "http",
+        "interval": 1,
+        "timeout": 30,
+        "retries": 3,
+        "alertWhen": "down"
+      },
+      {
+        "name": "API Health Check",
+        "url": "https://identafrica.com/api/health",
+        "type": "http",
+        "interval": 1,
+        "timeout": 10,
+        "retries": 3,
+        "alertWhen": "degraded"
+      },
+      {
+        "name": "Database Health",
+        "url": "https://identafrica.com/api/db/health",
+        "type": "http",
+        "interval": 5,
+        "timeout": 15,
+        "retries": 3,
+        "alertWhen": "down"
+      }
+    ],
+    "thirdParty": {
+      "uptimerobot": {
+        "apiKey": "${UPTIMEROBOT_API_KEY}",
+        "monitors": [
+          {
+            "friendly_name": "IDENT AFRICA - Main Site",
+            "url": "https://identafrica.com",
+            "type": 1,
+            "interval": 60,
+            "timeout": 30
+          },
+          {
+            "friendly_name": "IDENT AFRICA - API Health",
+            "url": "https://identafrica.com/api/health",
+            "type": 1,
+            "interval": 60,
+            "timeout": 10
+          }
+        ]
+      },
+      "betteruptime": {
+        "apiKey": "${BETTERUPTIME_API_KEY}",
+        "monitors": [
+          {
+            "name": "IDENT AFRICA - Main Site",
+            "url": "https://identafrica.com",
+            "check_frequency": "1m",
+            "alert_threshold": 3
+          },
+          {
+            "name": "IDENT AFRICA - API",
+            "url": "https://identafrica.com/api/health",
+            "check_frequency": "1m",
+            "alert_threshold": 3
+          }
+        ]
+      },
+      "pingdom": {
+        "apiKey": "${PINGDOM_API_KEY}",
+        "monitors": [
+          {
+            "name": "IDENT AFRICA - Production",
+            "host": "identafrica.com",
+            "type": "HTTP",
+            "interval": 60
+          }
+        ]
+      }
+    }
+  },
+  "alerting": {
+    "channels": {
+      "slack": {
+        "enabled": true,
+        "webhook": "${SLACK_WEBHOOK_URL}",
+        "channel": "#incidents"
+      },
+      "email": {
+        "enabled": true,
+        "recipients": ["ops@identafrica.com", "cto@identafrica.com"]
+      },
+      "pagerduty": {
+        "enabled": true,
+        "integrationKey": "${PAGERDUTY_KEY}",
+        "severityMapping": {
+          "main_site_down": "critical",
+          "api_degraded": "warning",
+          "api_down": "critical"
+        }
+      }
+    },
+    "thresholds": {
+      "responseTime": {
+        "warning": 500,
+        "critical": 2000
+      },
+      "errorRate": {
+        "warning": 1,
+        "critical": 5
+      }
+    }
+  },
+  "statusPage": {
+    "enabled": true,
+    "url": "https://status.identafrica.com",
+    "provider": "betteruptime",
+    "components": [
+      {
+        "name": "Website",
+        "status": "operational",
+        "order": 1
+      },
+      {
+        "name": "Booking Flow",
+        "status": "operational",
+        "order": 2
+      },
+      {
+        "name": "AI Safari Planner",
+        "status": "operational",
+        "order": 3
+      },
+      {
+        "name": "Payment Processing",
+        "status": "operational",
+        "order": 4
+      },
+      {
+        "name": "API",
+        "status": "operational",
+        "order": 5
+      }
+    ],
+    "incidents": {
+      "autoPublish": true,
+      "defaultNotice": "We are investigating this issue and will provide an update shortly."
+    }
+  }
+}

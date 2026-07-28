@@ -8,6 +8,8 @@ import {
   TransportOption,
   BuilderItem,
   CustomBuilderItinerary,
+  BuilderActivity,
+  BuilderTransport,
 } from '../../types';
 import {
   MOCK_ACTIVITIES,
@@ -89,7 +91,7 @@ export const VisualItineraryBuilder: React.FC = () => {
   };
   const [draggedItemData, setDraggedItemData] = useState<{
     type: 'destination' | 'hotel' | 'activity' | 'transport';
-    item: Destination | LuxuryLodge | ActivityOption | TransportOption;
+    item: Destination | LuxuryLodge | ActivityOption | TransportOption | BuilderActivity | BuilderTransport;
   } | null>(null);
 
   const [dragOverDay, setDragOverDay] = useState<number | null>(null);
@@ -195,7 +197,7 @@ export const VisualItineraryBuilder: React.FC = () => {
   // Actions for Board Items
   const addItemToDay = (
     type: 'destination' | 'hotel' | 'activity' | 'transport',
-    sourceItem: Destination | LuxuryLodge | ActivityOption | TransportOption,
+    sourceItem: Destination | LuxuryLodge | ActivityOption | TransportOption | BuilderActivity | BuilderTransport,
     targetDayNumber: number
   ) => {
     let newItem: BuilderItem;
@@ -229,7 +231,7 @@ export const VisualItineraryBuilder: React.FC = () => {
         notes: `Overnight luxury suite at ${lodge.name}. Full board inclusive.`,
       };
     } else if (type === 'activity') {
-      const act = sourceItem as ActivityOption;
+      const act = sourceItem as ActivityOption | BuilderActivity;
       newItem = {
         id: `item-${Date.now()}-${Math.random().toString(36).substring(2, 6)}`,
         type: 'activity',
@@ -244,15 +246,15 @@ export const VisualItineraryBuilder: React.FC = () => {
         notes: act.description,
       };
     } else {
-      const trans = sourceItem as TransportOption;
+      const trans = sourceItem as TransportOption | BuilderTransport;
       newItem = {
         id: `item-${Date.now()}-${Math.random().toString(36).substring(2, 6)}`,
         type: 'transport',
         itemId: trans.id,
         title: trans.name,
-        subtitle: `${trans.mode} • Base ${formatPrice(trans.baseFeeUSD)}`,
+        subtitle: `${'type' in trans ? trans.type : 'mode' in trans ? trans.mode : ''} • Base ${formatPrice('baseCostUSD' in trans ? trans.baseCostUSD : trans.baseFeeUSD || 0)}`,
         image: trans.image,
-        costUSD: trans.baseFeeUSD + 150, // default distance calculation
+        costUSD: ('baseCostUSD' in trans ? trans.baseCostUSD : trans.baseFeeUSD || 0) + 150,
         distanceKm: 280,
         estimatedTimeMin: Math.round((280 / trans.speedKmh) * 60),
         dayNumber: targetDayNumber,
@@ -337,7 +339,7 @@ export const VisualItineraryBuilder: React.FC = () => {
   const handleDragStart = (
     e: React.DragEvent,
     type: 'destination' | 'hotel' | 'activity' | 'transport',
-    item: Destination | LuxuryLodge | ActivityOption | TransportOption
+    item: Destination | LuxuryLodge | ActivityOption | TransportOption | BuilderActivity | BuilderTransport
   ) => {
     setDraggedItemData({ type, item });
     e.dataTransfer.setData('text/plain', JSON.stringify({ type, id: item.id }));
@@ -802,17 +804,17 @@ export const VisualItineraryBuilder: React.FC = () => {
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center justify-between">
                         <span className="text-[9px] font-mono font-bold uppercase text-[#D6B06A]">
-                          {trans.mode}
+                          {trans.type}
                         </span>
                         <span className="text-[9px] font-mono text-sky-400 font-bold">
-                          ${trans.baseFeeUSD} Base
+                          ${trans.baseCostUSD} Base
                         </span>
                       </div>
                       <h4 className="text-xs font-bold text-[#F4E8D5] truncate group-hover:text-[#D6B06A] transition-colors">
                         {trans.name}
                       </h4>
                       <p className="text-[10px] text-[#D3C5AE] line-clamp-1 font-light">
-                        Speed: {trans.speedKmh} km/h • Cap: {trans.capacity}
+                        Speed: {trans.speedKmh} km/h • ${trans.costPerKmUSD}/km
                       </p>
                     </div>
 
