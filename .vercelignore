@@ -69,10 +69,5 @@ coverage/
 # dist/ and build/ are created during npm run build
 # Vercel needs these to serve the application
 
-# Server-side files (not deployed to Vercel)
-# These are part of the separate Express backend
-server.ts
-src/routes/
-src/database/
-src/auth/
-src/server/
+# Server-side files ARE needed for the @vercel/node function
+# Do NOT ignore server.ts, src/routes/, src/database/, src/auth/

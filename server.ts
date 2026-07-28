@@ -125,7 +125,7 @@ const corsOptions: cors.CorsOptions = {
   maxAge: 86400, // 24 hours
 };
 
-async function startServer() {
+export async function createApp() {
   const app = express();
 
   // Security middleware with appropriate settings for SPA
@@ -834,15 +834,15 @@ Ensure all prices sum up logically in costBreakdown, lodging aligns with duratio
     }
   });
 
-  // Vite Integration for Dev / Static Serving for Production
-  if (NODE_ENV !== 'production') {
+  // Static file serving: skip on Vercel (handled by vercel.json routes)
+  if (!process.env.VERCEL && NODE_ENV !== 'production') {
     const { createServer: createViteServer } = await import('vite');
     const vite = await createViteServer({
       server: { middlewareMode: true },
       appType: 'spa',
     });
     app.use(vite.middlewares);
-  } else {
+  } else if (!process.env.VERCEL && NODE_ENV === 'production') {
     const distPath = path.join(process.cwd(), 'dist');
     app.use(express.static(distPath));
     app.get('*', (_req, res) => {
@@ -868,47 +868,46 @@ Ensure all prices sum up logically in costBreakdown, lodging aligns with duratio
     ));
   });
 
-  const httpServer = app.listen(PORT, '0.0.0.0', () => {
-    console.log(`═══════════════════════════════════════════════════════════`);
-    console.log(`  Ident Africa Server`);
-    console.log(`═══════════════════════════════════════════════════════════`);
-    console.log(`  Environment: ${NODE_ENV}`);
-    console.log(`  Server:     http://localhost:${PORT}`);
-    console.log(`  Health:     http://localhost:${PORT}/api/health`);
-    console.log(`═══════════════════════════════════════════════════════════`);
-  });
-
-  // Graceful shutdown: hosting platforms (Render included) send SIGTERM on
-  // every deploy/restart/scale-down. Without handling it, in-flight
-  // requests get killed abruptly instead of finishing first.
-  let shuttingDown = false;
-  const shutdown = (signal: string) => {
-    if (shuttingDown) return;
-    shuttingDown = true;
-    console.log(`\n${signal} received: closing server gracefully...`);
-
-    const forceExitTimer = setTimeout(() => {
-      console.error('Graceful shutdown timed out, forcing exit');
-      process.exit(1);
-    }, 10000);
-    forceExitTimer.unref();
-
-    httpServer.close((err) => {
-      if (err) {
-        console.error('Error during server close:', err);
-        process.exit(1);
-      }
-      console.log('Server closed, exiting.');
-      clearTimeout(forceExitTimer);
-      process.exit(0);
-    });
-  };
-
-  process.on('SIGTERM', () => shutdown('SIGTERM'));
-  process.on('SIGINT', () => shutdown('SIGINT'));
+  return app;
 }
 
-startServer().catch((err) => {
-  console.error('Failed to start server:', err);
-  process.exit(1);
-});
+// Standalone mode: start the server directly (for local dev and non-Vercel hosting)
+if (!process.env.VERCEL) {
+  createApp().then((app) => {
+    const httpServer = app.listen(PORT, '0.0.0.0', () => {
+      console.log(`═══════════════════════════════════════════════════════════`);
+      console.log(`  Ident Africa Server`);
+      console.log(`═══════════════════════════════════════════════════════════`);
+      console.log(`  Environment: ${NODE_ENV}`);
+      console.log(`  Server:     http://localhost:${PORT}`);
+      console.log(`  Health:     http://localhost:${PORT}/api/health`);
+      console.log(`═══════════════════════════════════════════════════════════`);
+    });
+
+    let shuttingDown = false;
+    const shutdown = (signal: string) => {
+      if (shuttingDown) return;
+      shuttingDown = true;
+      console.log(`\n${signal} received: closing server gracefully...`);
+      const forceExitTimer = setTimeout(() => {
+        console.error('Graceful shutdown timed out, forcing exit');
+        process.exit(1);
+      }, 10000);
+      forceExitTimer.unref();
+      httpServer.close((err) => {
+        if (err) {
+          console.error('Error during server close:', err);
+          process.exit(1);
+        }
+        console.log('Server closed, exiting.');
+        clearTimeout(forceExitTimer);
+        process.exit(0);
+      });
+    };
+    process.on('SIGTERM', () => shutdown('SIGTERM'));
+    process.on('SIGINT', () => shutdown('SIGINT'));
+  }).catch((err) => {
+    console.error('Failed to start server:', err);
+    process.exit(1);
+  });
+}
