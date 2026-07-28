@@ -1,11 +1,16 @@
-import { createApp } from '../server';
+import type { IncomingMessage, ServerResponse } from 'http';
 
-let app: Awaited<ReturnType<typeof createApp>> | null = null;
+let app: any = null;
 
-export default async function handler(req: Request, res: Response) {
+async function getExpressApp() {
   if (!app) {
+    const { createApp } = await import('../server');
     app = await createApp();
   }
-  // @ts-expect-error - Express app passed to Vercel handler
-  return app(req, res);
+  return app;
+}
+
+export default async function handler(req: IncomingMessage, res: ServerResponse) {
+  const expressApp = await getExpressApp();
+  return expressApp(req, res);
 }
