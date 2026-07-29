@@ -169,6 +169,7 @@ const DEFAULT_ASSETS: Record<string, {
 const uploadedAssetsCache: Map<string, { url: string; altText?: string }> = new Map();
 let cacheExpiry = 0;
 const CACHE_DURATION = 5 * 60 * 1000; // 5 minutes
+let fetchPromise: Promise<void> | null = null; // deduplicate concurrent calls
 
 /**
  * Fetch uploaded assets from API
@@ -177,23 +178,37 @@ async function fetchUploadedAssets(): Promise<void> {
   // Don't refetch if cache is still valid
   if (Date.now() < cacheExpiry) return;
   
-  try {
-    const response = await fetch('/api/media?source=uploaded&limit=100');
-    const data = await response.json();
-    
-    if (data.success && data.data?.items) {
-      uploadedAssetsCache.clear();
-      data.data.items.forEach((item: MediaAsset) => {
-        uploadedAssetsCache.set(item.filename, {
-          url: item.url,
-          altText: item.altText,
+  // Deduplicate concurrent calls
+  if (fetchPromise) return fetchPromise;
+
+  fetchPromise = (async () => {
+    try {
+      const response = await fetch('/api/media?source=uploaded&limit=100');
+      const data = await response.json();
+      
+      if (data.success && data.data?.items) {
+        const nextCache = new Map<string, { url: string; altText?: string }>();
+        data.data.items.forEach((item: MediaAsset) => {
+          nextCache.set(item.filename, {
+            url: item.url,
+            altText: item.altText,
+          });
         });
-      });
-      cacheExpiry = Date.now() + CACHE_DURATION;
+        uploadedAssetsCache.clear();
+        nextCache.forEach((v, k) => uploadedAssetsCache.set(k, v));
+        cacheExpiry = Date.now() + CACHE_DURATION;
+      }
+    } catch (error) {
+      // Silently degrade to defaults in production
+      if (process.env.NODE_ENV !== 'production') {
+        console.warn('Failed to fetch uploaded assets:', error);
+      }
+    } finally {
+      fetchPromise = null;
     }
-  } catch (error) {
-    console.warn('Failed to fetch uploaded assets:', error);
-  }
+  })();
+
+  return fetchPromise;
 }
 
 /**

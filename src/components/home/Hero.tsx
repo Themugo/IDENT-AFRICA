@@ -1,6 +1,77 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { useApp } from '../../context/AppContext';
 import { Search, Star, Award, Sparkles, ChevronLeft, ChevronRight, Pause, Play } from 'lucide-react';
+
+const HERO_BACKGROUNDS = [
+  {
+    url: "https://images.unsplash.com/photo-1534188753412-3e26d0d618d6?auto=format&fit=crop&w=2000&q=80",
+    caption: "Serengeti & Masai Mara Savannah",
+    location: "Kenya & Tanzania"
+  },
+  {
+    url: "https://images.unsplash.com/photo-1516426122078-c23e76319801?auto=format&fit=crop&w=2000&q=80",
+    caption: "Majestic Elephants at Mt. Kilimanjaro",
+    location: "Amboseli National Park"
+  },
+  {
+    url: "https://images.unsplash.com/photo-1547471080-7cc2caa01a7e?auto=format&fit=crop&w=2000&q=80",
+    caption: "Leopard in the Acacia Canopy",
+    location: "Samburu & Tarangire"
+  },
+  {
+    url: "https://images.unsplash.com/photo-1534177616072-ef7dc120449d?auto=format&fit=crop&w=2000&q=80",
+    caption: "The Great Wildebeest River Crossing",
+    location: "Mara River Triangle"
+  },
+  {
+    url: "https://images.unsplash.com/photo-1589553460732-58ef7a71fbb5?auto=format&fit=crop&w=2000&q=80",
+    caption: "Misty Rainforest Primate Sanctuaries",
+    location: "Bwindi & Volcanoes"
+  },
+  {
+    url: "https://images.unsplash.com/photo-1507525428034-b723cf961d3e?auto=format&fit=crop&w=2000&q=80",
+    caption: "Turquoise Indian Ocean Escapes",
+    location: "Zanzibar Archipelago"
+  }
+];
+
+const CARD_HIGHLIGHTS = [
+  {
+    id: 1,
+    image: "https://images.unsplash.com/photo-1516426122078-c23e76319801?auto=format&fit=crop&w=1200&q=80",
+    tag: "2026 Peak Season Available Slots",
+    title: "July 15 — Oct 28",
+    subtitle: "River Crossings & Mara Triangle Private Flying Safaris",
+    target: "itineraries" as const
+  },
+  {
+    id: 2,
+    image: "https://images.unsplash.com/photo-1589553460732-58ef7a71fbb5?auto=format&fit=crop&w=1200&q=80",
+    tag: "Primate Trekking Permits Available",
+    title: "Nov 1 — Mar 30",
+    subtitle: "Bwindi Impenetrable Forest Gorilla Habituation Expeditions",
+    target: "destinations" as const
+  },
+  {
+    id: 3,
+    image: "https://images.unsplash.com/photo-1566073771259-6a8506099945?auto=format&fit=crop&w=1200&q=80",
+    tag: "Guaranteed Luxury Tented Suites",
+    title: "Year-Round Private Charters",
+    subtitle: "Singita, Angama Mara & &Beyond Exclusive Lodges",
+    target: "hotels" as const
+  },
+  {
+    id: 4,
+    image: "https://images.unsplash.com/photo-1507525428034-b723cf961d3e?auto=format&fit=crop&w=1200&q=80",
+    tag: "Dual Sanctuary Bush & Beach",
+    title: "12-Day Masterpiece Journey",
+    subtitle: "Serengeti Big Five Game Drive + Zanzibar Private Dhow Cruise",
+    target: "itineraries" as const
+  }
+];
+
+const BG_INTERVAL = 6000;
+const CARD_INTERVAL = 5000;
 
 export const Hero: React.FC = () => {
   const { navigateTo } = useApp();
@@ -9,78 +80,8 @@ export const Hero: React.FC = () => {
   const [selectedFocus, setSelectedFocus] = useState<string>('All');
   const [selectedMonth, setSelectedMonth] = useState<string>('AUGUST 2026');
 
-  // Hero Background Image Slider
-  const heroBackgrounds = [
-    {
-      url: "https://images.unsplash.com/photo-1534188753412-3e26d0d618d6?auto=format&fit=crop&w=2000&q=80",
-      caption: "Serengeti & Masai Mara Savannah",
-      location: "Kenya & Tanzania"
-    },
-    {
-      url: "https://images.unsplash.com/photo-1516426122078-c23e76319801?auto=format&fit=crop&w=2000&q=80",
-      caption: "Majestic Elephants at Mt. Kilimanjaro",
-      location: "Amboseli National Park"
-    },
-    {
-      url: "https://images.unsplash.com/photo-1547471080-7cc2caa01a7e?auto=format&fit=crop&w=2000&q=80",
-      caption: "Leopard in the Acacia Canopy",
-      location: "Samburu & Tarangire"
-    },
-    {
-      url: "https://images.unsplash.com/photo-1534177616072-ef7dc120449d?auto=format&fit=crop&w=2000&q=80",
-      caption: "The Great Wildebeest River Crossing",
-      location: "Mara River Triangle"
-    },
-    {
-      url: "https://images.unsplash.com/photo-1589553460732-58ef7a71fbb5?auto=format&fit=crop&w=2000&q=80",
-      caption: "Misty Rainforest Primate Sanctuaries",
-      location: "Bwindi & Volcanoes"
-    },
-    {
-      url: "https://images.unsplash.com/photo-1507525428034-b723cf961d3e?auto=format&fit=crop&w=2000&q=80",
-      caption: "Turquoise Indian Ocean Escapes",
-      location: "Zanzibar Archipelago"
-    }
-  ];
-
   const [bgIndex, setBgIndex] = useState(0);
   const [isBgAutoplay, setIsBgAutoplay] = useState(true);
-
-  // Hero Highlight Cards Slider
-  const cardHighlights = [
-    {
-      id: 1,
-      image: "https://images.unsplash.com/photo-1516426122078-c23e76319801?auto=format&fit=crop&w=1200&q=80",
-      tag: "2026 Peak Season Available Slots",
-      title: "July 15 — Oct 28",
-      subtitle: "River Crossings & Mara Triangle Private Flying Safaris",
-      target: "itineraries" as const
-    },
-    {
-      id: 2,
-      image: "https://images.unsplash.com/photo-1589553460732-58ef7a71fbb5?auto=format&fit=crop&w=1200&q=80",
-      tag: "Primate Trekking Permits Available",
-      title: "Nov 1 — Mar 30",
-      subtitle: "Bwindi Impenetrable Forest Gorilla Habituation Expeditions",
-      target: "destinations" as const
-    },
-    {
-      id: 3,
-      image: "https://images.unsplash.com/photo-1566073771259-6a8506099945?auto=format&fit=crop&w=1200&q=80",
-      tag: "Guaranteed Luxury Tented Suites",
-      title: "Year-Round Private Charters",
-      subtitle: "Singita, Angama Mara & &Beyond Exclusive Lodges",
-      target: "hotels" as const
-    },
-    {
-      id: 4,
-      image: "https://images.unsplash.com/photo-1507525428034-b723cf961d3e?auto=format&fit=crop&w=1200&q=80",
-      tag: "Dual Sanctuary Bush & Beach",
-      title: "12-Day Masterpiece Journey",
-      subtitle: "Serengeti Big Five Game Drive + Zanzibar Private Dhow Cruise",
-      target: "itineraries" as const
-    }
-  ];
 
   const [cardIndex, setCardIndex] = useState(0);
 
@@ -88,46 +89,50 @@ export const Hero: React.FC = () => {
   useEffect(() => {
     if (!isBgAutoplay) return;
     const timer = setInterval(() => {
-      setBgIndex((prev) => (prev + 1) % heroBackgrounds.length);
-    }, 6000);
+      setBgIndex((prev) => (prev + 1) % HERO_BACKGROUNDS.length);
+    }, BG_INTERVAL);
     return () => clearInterval(timer);
-  }, [isBgAutoplay, heroBackgrounds.length]);
+  }, [isBgAutoplay]);
 
   // Auto advance card slider
   useEffect(() => {
     const timer = setInterval(() => {
-      setCardIndex((prev) => (prev + 1) % cardHighlights.length);
-    }, 5000);
+      setCardIndex((prev) => (prev + 1) % CARD_HIGHLIGHTS.length);
+    }, CARD_INTERVAL);
     return () => clearInterval(timer);
-  }, [cardHighlights.length]);
+  }, []);
 
-  const handleSearchSubmit = (e: React.FormEvent) => {
+  const handleSearchSubmit = useCallback((e: React.FormEvent) => {
     e.preventDefault();
     navigateTo('destinations');
-  };
+  }, [navigateTo]);
 
-  const nextBg = () => {
-    setBgIndex((prev) => (prev + 1) % heroBackgrounds.length);
-  };
+  const nextBg = useCallback(() => {
+    setBgIndex((prev) => (prev + 1) % HERO_BACKGROUNDS.length);
+  }, []);
 
-  const prevBg = () => {
-    setBgIndex((prev) => (prev - 1 + heroBackgrounds.length) % heroBackgrounds.length);
-  };
+  const prevBg = useCallback(() => {
+    setBgIndex((prev) => (prev - 1 + HERO_BACKGROUNDS.length) % HERO_BACKGROUNDS.length);
+  }, []);
 
-  const nextCard = () => {
-    setCardIndex((prev) => (prev + 1) % cardHighlights.length);
-  };
+  const nextCard = useCallback(() => {
+    setCardIndex((prev) => (prev + 1) % CARD_HIGHLIGHTS.length);
+  }, []);
 
-  const prevCard = () => {
-    setCardIndex((prev) => (prev - 1 + cardHighlights.length) % cardHighlights.length);
-  };
+  const prevCard = useCallback(() => {
+    setCardIndex((prev) => (prev - 1 + CARD_HIGHLIGHTS.length) % CARD_HIGHLIGHTS.length);
+  }, []);
+
+  const handleImageError = useCallback((e: React.SyntheticEvent<HTMLImageElement>) => {
+    e.currentTarget.style.opacity = '0.3';
+  }, []);
 
   return (
     <section className="relative min-h-[68vh] sm:min-h-[72vh] lg:min-h-[74vh] bg-[#463D34] text-[#F4E8D5] border-b border-[#C89A4B]/40 overflow-hidden texture-leather">
       
       {/* Background Majestic Wildlife Image Slider */}
       <div className="absolute inset-0 z-0">
-        {heroBackgrounds.map((bg, idx) => (
+        {HERO_BACKGROUNDS.map((bg, idx) => (
           <div
             key={bg.url}
             className={`absolute inset-0 transition-opacity duration-1000 ease-in-out ${
@@ -139,6 +144,8 @@ export const Hero: React.FC = () => {
               alt={bg.caption}
               className="w-full h-full object-cover object-center"
               referrerPolicy="no-referrer"
+              loading={idx === 0 ? 'eager' : 'lazy'}
+              onError={handleImageError}
             />
           </div>
         ))}
@@ -175,7 +182,7 @@ export const Hero: React.FC = () => {
           </button>
           
           <span className="font-mono text-xs text-[#D6B06A] font-bold px-1">
-            0{bgIndex + 1} / 0{heroBackgrounds.length}
+            0{bgIndex + 1} / 0{HERO_BACKGROUNDS.length}
           </span>
 
           <button
@@ -197,7 +204,7 @@ export const Hero: React.FC = () => {
           </button>
 
           <span className="hidden sm:inline-block text-[11px] text-[#F4E8D5] tracking-wider font-semibold pl-1">
-            {heroBackgrounds[bgIndex].caption} ({heroBackgrounds[bgIndex].location})
+            {HERO_BACKGROUNDS[bgIndex].caption} ({HERO_BACKGROUNDS[bgIndex].location})
           </span>
         </div>
       </div>
@@ -235,7 +242,7 @@ export const Hero: React.FC = () => {
               <div className="flex-1 p-6 sm:p-7 relative overflow-hidden min-h-[140px] flex flex-col justify-center">
                 
                 {/* Background Image for Card Slide */}
-                {cardHighlights.map((item, idx) => (
+                {CARD_HIGHLIGHTS.map((item, idx) => (
                   <div
                     key={item.id}
                     className={`absolute inset-0 transition-opacity duration-700 ease-in-out ${
@@ -247,6 +254,8 @@ export const Hero: React.FC = () => {
                       alt={item.title}
                       className="w-full h-full object-cover object-center"
                       referrerPolicy="no-referrer"
+                      loading="lazy"
+                      onError={handleImageError}
                     />
                   </div>
                 ))}
@@ -256,7 +265,7 @@ export const Hero: React.FC = () => {
                 <div className="relative z-10 space-y-1.5">
                   <div className="flex items-center justify-between">
                     <span className="text-[11px] uppercase font-bold tracking-[0.2em] text-[#4F6848] font-mono block">
-                      {cardHighlights[cardIndex].tag}
+                      {CARD_HIGHLIGHTS[cardIndex].tag}
                     </span>
                     
                     {/* Navigation Arrows for Card */}
@@ -269,7 +278,7 @@ export const Hero: React.FC = () => {
                         <ChevronLeft className="w-3.5 h-3.5" />
                       </button>
                       <span className="text-[11px] font-mono text-[#2A1E17] px-1 font-bold">
-                        {cardIndex + 1}/{cardHighlights.length}
+                        {cardIndex + 1}/{CARD_HIGHLIGHTS.length}
                       </span>
                       <button
                         onClick={nextCard}
@@ -282,10 +291,10 @@ export const Hero: React.FC = () => {
                   </div>
 
                   <p className="text-2xl sm:text-3xl font-serif text-[#2A1E17] font-bold">
-                    {cardHighlights[cardIndex].title}
+                    {CARD_HIGHLIGHTS[cardIndex].title}
                   </p>
                   <p className="text-[11px] text-[#5A4738] pt-0.5 max-w-md font-medium">
-                    {cardHighlights[cardIndex].subtitle}
+                    {CARD_HIGHLIGHTS[cardIndex].subtitle}
                   </p>
                 </div>
               </div>
@@ -304,7 +313,7 @@ export const Hero: React.FC = () => {
 
             {/* Slide Progress Dots */}
             <div className="bg-[#F5E7D0]/80 px-6 py-2 flex items-center gap-2 border-t border-[#C89A4B]/30">
-              {cardHighlights.map((_, idx) => (
+              {CARD_HIGHLIGHTS.map((_, idx) => (
                 <button
                   key={idx}
                   onClick={() => setCardIndex(idx)}

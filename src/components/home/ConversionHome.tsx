@@ -66,7 +66,8 @@ const ConversionHero: React.FC = () => {
   const opacity = useTransform(scrollY, [0, 300], [1, 0.3]);
   
   useEffect(() => {
-    setTimeout(() => setIsVisible(true), 100);
+    const timer = setTimeout(() => setIsVisible(true), 100);
+    return () => clearTimeout(timer);
   }, []);
 
   return (

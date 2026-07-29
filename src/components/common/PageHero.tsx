@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Compass, Sparkles, ArrowRight } from 'lucide-react';
 
 interface PageHeroProps {
@@ -30,15 +30,24 @@ export const PageHero: React.FC<PageHeroProps> = ({
     { label: 'Ranger Guide Score', value: '4.98 ★★★★★' },
   ],
 }) => {
+  const [imgLoaded, setImgLoaded] = useState(false);
+  const [imgError, setImgError] = useState(false);
+
   return (
     <section className="relative w-full overflow-hidden bg-[#101913] text-[#F7F1E7] border-b border-[#D4A94D]/30 min-h-[380px] sm:min-h-[440px] md:min-h-[500px] flex flex-col justify-between">
       {/* Background Image with Dual Gradient Overlays */}
       <div className="absolute inset-0 z-0">
+        {!imgLoaded && !imgError && (
+          <div className="absolute inset-0 bg-[#1B2620] animate-pulse" />
+        )}
         <img
           src={bgImage}
           alt={title}
-          className="w-full h-full object-cover object-center filter brightness-[0.7] contrast-[1.1] scale-105"
+          className={`w-full h-full object-cover object-center filter brightness-[0.7] contrast-[1.1] scale-105 transition-opacity duration-500 ${imgLoaded ? 'opacity-100' : 'opacity-0'}`}
           referrerPolicy="no-referrer"
+          loading="lazy"
+          onLoad={() => setImgLoaded(true)}
+          onError={() => { setImgError(true); setImgLoaded(true); }}
         />
         <div className="absolute inset-0 bg-gradient-to-t from-[#101913] via-[#101913]/60 to-black/40" />
         <div className="absolute inset-0 bg-gradient-to-r from-[#101913]/90 via-[#101913]/40 to-transparent" />
